@@ -143,6 +143,9 @@ export default function App() {
           
           if (!uploadError) {
             fileUrl = uploadData.path;
+          } else {
+            console.warn('Supabase storage upload error:', uploadError);
+            fileUrl = `Arquivo: ${file.name}`;
           }
         } catch (e) {
           console.warn('Supabase storage not configured, skipping file upload');
@@ -157,6 +160,7 @@ export default function App() {
       };
 
       const googleSheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_API_URL;
+      const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
 
       if (googleSheetsUrl) {
         // Envia para o Google Sheets (Apps Script Web App)
@@ -174,13 +178,19 @@ export default function App() {
         setSavedAnalyses(newAnalyses);
         localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
         setSubmitted(true);
-      } else {
+      } else if (isSupabaseConfigured) {
         // Fallback para Supabase se o Google Sheets não estiver configurado
         const { error } = await supabase
           .from('analises_risco')
           .insert([payload]);
 
         if (error) throw error;
+        const newAnalyses = [...savedAnalyses, payload];
+        setSavedAnalyses(newAnalyses);
+        localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
+        setSubmitted(true);
+      } else {
+        // Se nenhum estiver configurado, salva apenas localmente
         const newAnalyses = [...savedAnalyses, payload];
         setSavedAnalyses(newAnalyses);
         localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
