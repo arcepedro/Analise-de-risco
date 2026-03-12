@@ -8,7 +8,6 @@ import { supabase } from './lib/supabase';
 import { NOMES_FUNCIONARIOS, SUPERVISAO_OPTIONS, OPERACAO_OPTIONS, UNIDADE_OPTIONS } from './constants';
 import { 
   ClipboardCheck, 
-  LogOut, 
   Calendar, 
   User, 
   Clock, 
@@ -62,8 +61,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -79,30 +76,6 @@ export default function App() {
       } catch (e) {}
     }
   }, []);
-  
-  // Código de acesso simples para todos os colaboradores
-  const SHARED_CODE = "AGRO2024"; 
-
-  const handleAccess = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (accessCode.toUpperCase() === SHARED_CODE) {
-      setIsAuthorized(true);
-      localStorage.setItem('agro_authorized', 'true');
-    } else {
-      alert('Código de acesso incorreto. Verifique com seu supervisor.');
-    }
-  };
-
-  useEffect(() => {
-    const auth = localStorage.getItem('agro_authorized');
-    if (auth === 'true') setIsAuthorized(true);
-  }, []);
-
-  const handleLogout = () => {
-    setIsAuthorized(false);
-    localStorage.removeItem('agro_authorized');
-    setStep(0);
-  };
 
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
@@ -231,62 +204,6 @@ export default function App() {
   };
 
   if (showSplash) return <SplashScreen />;
-
-  if (!isAuthorized) {
-    const isConfigMissing = (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co') && !import.meta.env.VITE_GOOGLE_SHEETS_API_URL;
-
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-zinc-900 rounded-3xl shadow-2xl p-6 sm:p-8 border border-zinc-800"
-        >
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-lime-950 rounded-2xl flex items-center justify-center border border-lime-900">
-              <CustomLogo className="w-10 h-10" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-center text-zinc-100 mb-2">Análise de Riscos</h1>
-          <p className="text-zinc-400 text-center mb-8">Produção Agrícola - Acesso Colaborador</p>
-          
-          {isConfigMissing && (
-            <div className="mb-6 p-4 bg-amber-950 border border-amber-900 rounded-2xl text-amber-200 text-sm">
-              <p className="font-bold mb-1">Configuração Pendente:</p>
-              O administrador precisa configurar o banco de dados.
-            </div>
-          )}
-
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase mb-2 ml-1">Código de Acesso</label>
-              <input
-                type="text"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="Digite o código"
-                className="w-full p-3 sm:p-4 bg-zinc-950 border border-zinc-800 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none transition-all text-center font-bold tracking-widest text-zinc-100"
-                required
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleAccess}
-              disabled={isConfigMissing}
-              className="w-full flex items-center justify-center gap-3 bg-lime-600 hover:bg-lime-700 text-white transition-all py-3 sm:py-4 rounded-2xl font-bold shadow-lg shadow-lime-950 disabled:opacity-50"
-            >
-              Entrar no Aplicativo
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </form>
-          
-          <p className="mt-6 text-[10px] text-center text-zinc-600 uppercase font-bold tracking-widest">
-            Segurança em Primeiro Lugar
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
 
   if (submitted) {
     return (
@@ -644,13 +561,6 @@ export default function App() {
             title="Exportar Excel"
           >
             <FileSpreadsheet className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500"
-            title="Sair"
-          >
-            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </header>
