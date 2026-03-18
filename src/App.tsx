@@ -21,12 +21,39 @@ import {
   FileSpreadsheet,
   Home,
   Settings,
-  X
+  X,
+  Check,
+  LogOut,
+  Lock,
+  Mail as MailIcon,
+  User as UserIcon,
+  Key
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import * as XLSX from 'xlsx';
+import { auth, db } from './firebase';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  sendEmailVerification,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  where, 
+  orderBy,
+  serverTimestamp,
+  doc,
+  setDoc,
+  getDoc
+} from 'firebase/firestore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -65,6 +92,98 @@ const DetailItem = ({ label, value }: { label: string, value: string }) => (
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showTestSuccess, setShowTestSuccess] = useState(false);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authMatricula, setAuthMatricula] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      setAuthReady(true);
+      if (u) {
+        let nome = localStorage.getItem(`agro_nome_${u.uid}`) || '';
+        let matricula = localStorage.getItem(`agro_matricula_${u.uid}`) || '';
+
+        // Try to fetch from Firestore if not in local storage
+        if (!nome || !matricula) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', u.uid));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              nome = data.nome || nome;
+              matricula = data.matricula || matricula;
+              localStorage.setItem(`agro_nome_${u.uid}`, nome);
+              localStorage.setItem(`agro_matricula_${u.uid}`, matricula);
+            }
+          } catch (e) {
+            console.error('Error fetching user profile:', e);
+          }
+        }
+
+        setFormData(prev => ({ 
+          ...prev, 
+          email_usuario: u.email || '',
+          nome: nome,
+          matricula: matricula
+        }));
+        setTestEmail(u.email || 'pedro.arce@cocal.com.br');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      if (authMode === 'login') {
+        await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+        const u = userCredential.user;
+        
+        // Save user profile to Firestore
+        await setDoc(doc(db, 'users', u.uid), {
+          uid: u.uid,
+          email: authEmail,
+          nome: authName,
+          matricula: authMatricula,
+          createdAt: new Date().toISOString()
+        });
+
+        await sendEmailVerification(u);
+        setAuthError('Conta criada! Um e-mail de verificação foi enviado. Por favor, verifique sua caixa de entrada.');
+        setAuthMode('login');
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setAuthError('E-mail ou senha incorretos.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setAuthError('Este e-mail já está em uso.');
+      } else if (err.code === 'auth/weak-password') {
+        setAuthError('A senha deve ter pelo menos 6 caracteres.');
+      } else {
+        setAuthError('Ocorreu um erro ao tentar autenticar. Tente novamente.');
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setViewState('home');
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 5000);
     return () => clearTimeout(timer);
@@ -84,13 +203,36 @@ export default function App() {
   const [selectedAnalysis, setSelectedAnalysis] = useState<any | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('agro_analyses');
-    if (saved) {
-      try {
-        setSavedAnalyses(JSON.parse(saved));
-      } catch (e) {}
+    if (!user) {
+      setSavedAnalyses([]);
+      return;
     }
-  }, []);
+
+    const q = query(
+      collection(db, 'analyses'),
+      where('userId', '==', user.uid),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const analyses = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setSavedAnalyses(analyses);
+    }, (err) => {
+      console.error('Firestore error:', err);
+      // Fallback to local storage if firestore fails
+      const saved = localStorage.getItem('agro_analyses');
+      if (saved) {
+        try {
+          setSavedAnalyses(JSON.parse(saved));
+        } catch (e) {}
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
@@ -167,18 +309,18 @@ export default function App() {
     }
 
     try {
-      // Reorganiza o payload para garantir que campos novos não desloquem os antigos
-      // se o script do Google usar índices fixos.
-      const { email_usuario, ...rest } = formData;
       const payload = {
-        ...rest,
-        email_usuario, // Move para o final
+        ...formData,
+        userId: user?.uid,
         timestamp: new Date().toISOString(),
       };
 
       console.log('Payload Final para Envio:', payload);
       console.log('E-mail do Supervisor:', payload.email_supervisor);
       console.log('Iniciando envio para:', sheetsUrl);
+
+      // Save to Firestore
+      await addDoc(collection(db, 'analyses'), payload);
 
       // Envia para o Google Sheets (Apps Script Web App)
       try {
@@ -192,27 +334,142 @@ export default function App() {
         });
       } catch (fetchError) {
         console.error('Erro na requisição fetch:', fetchError);
-        throw new Error('Não foi possível conectar ao Google Sheets. Verifique o link nas configurações.');
+        // We still consider it a success if Firestore worked
       }
       
-      const newAnalyses = [...savedAnalyses, payload];
-      setSavedAnalyses(newAnalyses);
+      setSubmitted(true);
+      setStep(0);
       
+      // Local storage as backup
       try {
+        const newAnalyses = [payload, ...savedAnalyses];
         localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
       } catch (e) {
-        console.warn('LocalStorage quota exceeded, could not save analysis list');
+        console.warn('LocalStorage quota exceeded');
       }
-      setSubmitted(true);
-    } catch (error: any) {
-      console.error('Error submitting form:', error);
-      setError(error.message || 'Erro ao enviar formulário. Verifique sua conexão e tente novamente.');
+    } catch (e) {
+      console.error('Submission error:', e);
+      setError('Erro ao enviar dados: ' + (e as Error).message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (showSplash) return <SplashScreen />;
+  if (showSplash || !authReady) return <SplashScreen />;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-zinc-900 rounded-3xl border border-zinc-800 p-8 shadow-2xl"
+        >
+          <div className="flex flex-col items-center mb-8">
+            <CustomLogo className="w-16 h-16 mb-4" />
+            <h2 className="text-2xl font-bold text-white">Acesso Restrito</h2>
+            <p className="text-zinc-500 text-sm text-center mt-1">
+              {authMode === 'login' 
+                ? 'Entre com seu e-mail Outlook para continuar.' 
+                : 'Crie sua conta corporativa para acessar o App.'}
+            </p>
+          </div>
+
+          <form onSubmit={handleAuth} className="space-y-4">
+            {authMode === 'register' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Nome Completo</label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                    <input
+                      type="text"
+                      required
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-lime-500 outline-none text-white transition-all"
+                      placeholder="Seu nome"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Matrícula</label>
+                  <div className="relative">
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                    <input
+                      type="text"
+                      required
+                      value={authMatricula}
+                      onChange={(e) => setAuthMatricula(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-lime-500 outline-none text-white transition-all"
+                      placeholder="Sua matrícula"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">E-mail Outlook</label>
+              <div className="relative">
+                <MailIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                <input
+                  type="email"
+                  required
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-lime-500 outline-none text-white transition-all"
+                  placeholder="usuario@outlook.com"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                <input
+                  type="password"
+                  required
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-lime-500 outline-none text-white transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {authError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-4 bg-lime-600 hover:bg-lime-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-lime-950 flex items-center justify-center gap-2"
+            >
+              {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (authMode === 'login' ? 'ENTRAR' : 'CADASTRAR')}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'register' : 'login');
+                setAuthError(null);
+              }}
+              className="text-sm text-zinc-400 hover:text-lime-500 transition-colors"
+            >
+              {authMode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -576,33 +833,12 @@ export default function App() {
         {viewState === 'home' && (
           <div className="bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-800 p-6 sm:p-8 flex flex-col items-center justify-center text-center mt-4 sm:mt-10">
             <CustomLogo className="w-20 h-20 mb-6" />
-            <h2 className="text-2xl font-bold text-zinc-100 mb-2">Bem-vindo à Gestão de Risco</h2>
+            <h2 className="text-2xl font-bold text-zinc-100 mb-2">Bem-vindo, {user?.email?.split('@')[0]}</h2>
             <p className="text-zinc-400 mb-8 text-sm sm:text-base">Escolha uma das opções abaixo para continuar.</p>
             
             <div className="flex flex-col gap-4 w-full max-w-sm">
-              <div className="text-left mb-2">
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 ml-1">E-mail Corporativo para Relatórios</label>
-                <input
-                  type="email"
-                  value={formData.email_usuario}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormData(prev => ({ ...prev, email_usuario: val }));
-                    localStorage.setItem('agro_email_usuario', val);
-                  }}
-                  placeholder="seu-email@cocal.com.br"
-                  className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none text-zinc-100 text-sm transition-all"
-                />
-              </div>
-
               <button 
-                onClick={() => {
-                  if (!formData.email_usuario) {
-                    setError('Por favor, preencha seu e-mail corporativo antes de iniciar.');
-                    return;
-                  }
-                  setViewState('form');
-                }}
+                onClick={() => setViewState('form')}
                 className="w-full flex items-center justify-center gap-3 bg-lime-600 hover:bg-lime-700 text-white transition-all py-4 rounded-2xl font-bold shadow-lg shadow-lime-950"
               >
                 <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -968,6 +1204,25 @@ export default function App() {
                   <Settings className="w-6 h-6 text-lime-500" />
                 </div>
                 <h2 className="text-xl font-bold text-zinc-100">Configurações</h2>
+              </div>
+
+              <div className="mb-6 p-4 bg-zinc-950 border border-zinc-800 rounded-2xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-lime-500 font-bold">
+                    {user?.email?.[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{user?.email}</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Usuário Autenticado</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  SAIR DA CONTA
+                </button>
               </div>
               
               <div className="space-y-4">
