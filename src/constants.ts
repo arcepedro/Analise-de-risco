@@ -25,8 +25,12 @@ export const NOMES_FUNCIONARIOS = [
 ];
 
 export const SUPERVISAO_OPTIONS = [
-  "NRD - Preparo e Plantio", "NRD - Tratos Culturais", "NRD - Herbicida",
-  "PPTA - Preparo e Plantio", "PPTA - Tratos Culturais", "PPTA - Herbicida"
+  { label: "NRD - Preparo e Plantio", email: "preparoeplantionrd@cocal.com.br" },
+  { label: "NRD - Tratos Culturais", email: "tratosculturaisnrd@grupococal.onmicrosoft.com" },
+  { label: "NRD - Herbicida", email: "herbicida.nrd@grupococal.onmicrosoft.com" },
+  { label: "PPTA - Preparo e Plantio", email: "preparoeplantioppta@cocal.com.br" },
+  { label: "PPTA - Tratos Culturais", email: "tratosculturaisppt@cocal.com.br" },
+  { label: "PPTA - Herbicida", email: "herbicida.ppt@cocal.com.br" }
 ];
 
 export const OPERACAO_OPTIONS = [
@@ -37,3 +41,12 @@ export const OPERACAO_OPTIONS = [
 ];
 
 export const UNIDADE_OPTIONS = ["Paraguaçu Paulista", "Narandiba"];
+
+export const SUPERVISORES = [
+  { nome: "Igor Stevanato", email: "igor.stevanato@Cocal.com.br" },
+  { nome: "Fabio Oliveira dos Santos", email: "fosantos@Cocal.com.br" },
+  { nome: "João Gabriel Gonçalves Donha", email: "jdonha@cocal.com.br" },
+  { nome: "Carlos Antonio Pretelli Junior", email: "carlos.pretelli@cocal.com.br" },
+  { nome: "Supervisor 5", email: "supervisor5@empresa.com" },
+  { nome: "Supervisor 6", email: "supervisor6@empresa.com" },
+];

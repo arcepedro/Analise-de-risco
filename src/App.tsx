@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
-import { NOMES_FUNCIONARIOS, SUPERVISAO_OPTIONS, OPERACAO_OPTIONS, UNIDADE_OPTIONS } from './constants';
+import { NOMES_FUNCIONARIOS, SUPERVISAO_OPTIONS, OPERACAO_OPTIONS, UNIDADE_OPTIONS, SUPERVISORES } from './constants';
 import { 
   ClipboardCheck, 
   Calendar, 
@@ -20,7 +19,9 @@ import {
   Loader2,
   Mail,
   FileSpreadsheet,
-  Home
+  Home,
+  Settings,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -54,8 +55,16 @@ const SplashScreen = () => (
   </motion.div>
 );
 
+const DetailItem = ({ label, value }: { label: string, value: string }) => (
+  <div className="flex flex-col">
+    <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">{label}</span>
+    <span className="text-sm text-stone-700 font-medium">{value || 'N/A'}</span>
+  </div>
+);
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [showTestSuccess, setShowTestSuccess] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 5000);
     return () => clearTimeout(timer);
@@ -67,6 +76,12 @@ export default function App() {
   const [submitted, setSubmitted] = useState(false);
   const [viewState, setViewState] = useState<'home' | 'form' | 'list'>('home');
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [testEmail, setTestEmail] = useState('pedro.arce@cocal.com.br');
+  const [sheetsUrl, setSheetsUrl] = useState(localStorage.getItem('agro_sheets_url') || import.meta.env.VITE_GOOGLE_SHEETS_API_URL || '');
+  const [error, setError] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState('');
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('agro_analyses');
@@ -79,8 +94,8 @@ export default function App() {
 
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
-    matricula: '',
-    nome: '',
+    matricula: localStorage.getItem('agro_matricula') || '',
+    nome: localStorage.getItem('agro_nome') || '',
     horario_inicio: '',
     horario_termino: '',
     supervisao: '',
@@ -104,17 +119,26 @@ export default function App() {
     sede_fazenda: '',
     observacao_area: '',
     necessidade_patrol: '',
+    email_supervisor: '',
+    email_usuario: localStorage.getItem('agro_email_usuario') || '',
   });
-  const [file, setFile] = useState<File | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    
+    if (name === 'supervisao') {
+      const selectedOption = SUPERVISAO_OPTIONS.find(o => o.label === value);
+      setFormData(prev => ({ 
+        ...prev, 
+        supervisao: value,
+        email_supervisor: selectedOption ? selectedOption.email : ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+      // Persistir dados básicos
+      if (['matricula', 'nome', 'email_usuario'].includes(name)) {
+        localStorage.setItem(`agro_${name}`, value);
+      }
     }
   };
 
@@ -128,86 +152,61 @@ export default function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
+
+    if (!sheetsUrl) {
+      setError('A URL do Google Sheets não está configurada. Vá em Configurações (ícone de engrenagem) para definir a URL do Web App.');
+      setSubmitting(false);
+      return;
+    }
+
+    if (!formData.email_supervisor) {
+      setError('Erro: E-mail do supervisor não identificado para esta supervisão. Verifique as configurações.');
+      setSubmitting(false);
+      return;
+    }
 
     try {
-      let fileUrl = '';
-      if (file) {
-        // Tenta fazer upload para o Supabase se estiver configurado, 
-        // caso contrário, apenas registra o nome do arquivo
-        try {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Math.random()}.${fileExt}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('analise-riscos')
-            .upload(fileName, file);
-          
-          if (!uploadError) {
-            fileUrl = uploadData.path;
-          } else {
-            console.warn('Supabase storage upload error:', uploadError);
-            fileUrl = `Arquivo: ${file.name}`;
-          }
-        } catch (e) {
-          console.warn('Supabase storage not configured, skipping file upload');
-          fileUrl = `Arquivo: ${file.name}`;
-        }
-      }
-
+      // Reorganiza o payload para garantir que campos novos não desloquem os antigos
+      // se o script do Google usar índices fixos.
+      const { email_usuario, ...rest } = formData;
       const payload = {
-        ...formData,
-        foto_url: fileUrl,
+        ...rest,
+        email_usuario, // Move para o final
         timestamp: new Date().toISOString(),
       };
 
-      const googleSheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_API_URL;
-      const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
+      console.log('Payload Final para Envio:', payload);
+      console.log('E-mail do Supervisor:', payload.email_supervisor);
+      console.log('Iniciando envio para:', sheetsUrl);
 
-      if (googleSheetsUrl) {
-        // Envia para o Google Sheets (Apps Script Web App)
-        const response = await fetch(googleSheetsUrl, {
+      // Envia para o Google Sheets (Apps Script Web App)
+      try {
+        await fetch(sheetsUrl, {
           method: 'POST',
-          mode: 'no-cors', // Necessário para Apps Script
+          mode: 'no-cors',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain;charset=utf-8',
           },
           body: JSON.stringify(payload),
         });
-        
-        // No mode 'no-cors', não conseguimos ler a resposta, mas se não deu erro no fetch, assumimos sucesso
-        const newAnalyses = [...savedAnalyses, payload];
-        setSavedAnalyses(newAnalyses);
-        localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
-        setSubmitted(true);
-      } else if (isSupabaseConfigured) {
-        // Fallback para Supabase se o Google Sheets não estiver configurado
-        const { error } = await supabase
-          .from('analises_risco')
-          .insert([payload]);
-
-        if (error) throw error;
-        const newAnalyses = [...savedAnalyses, payload];
-        setSavedAnalyses(newAnalyses);
-        localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
-        setSubmitted(true);
-      } else {
-        // Se nenhum estiver configurado, salva apenas localmente
-        const newAnalyses = [...savedAnalyses, payload];
-        setSavedAnalyses(newAnalyses);
-        localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
-        setSubmitted(true);
+      } catch (fetchError) {
+        console.error('Erro na requisição fetch:', fetchError);
+        throw new Error('Não foi possível conectar ao Google Sheets. Verifique o link nas configurações.');
       }
+      
+      const newAnalyses = [...savedAnalyses, payload];
+      setSavedAnalyses(newAnalyses);
+      
+      try {
+        localStorage.setItem('agro_analyses', JSON.stringify(newAnalyses));
+      } catch (e) {
+        console.warn('LocalStorage quota exceeded, could not save analysis list');
+      }
+      setSubmitted(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);
-      
-      let errorMessage = 'Erro ao enviar formulário. Verifique sua conexão e tente novamente.';
-      
-      if (error.message?.includes('row-level security policy')) {
-        errorMessage = 'Erro de Permissão (RLS): O banco de dados está bloqueando o envio. Por favor, execute o comando SQL de permissão no painel do Supabase.';
-      } else if (error.message?.includes('Bucket not found')) {
-        errorMessage = 'Erro de Armazenamento: O bucket "analise-riscos" não foi encontrado no Supabase.';
-      }
-
-      alert(errorMessage);
+      setError(error.message || 'Erro ao enviar formulário. Verifique sua conexão e tente novamente.');
     } finally {
       setSubmitting(false);
     }
@@ -249,7 +248,7 @@ export default function App() {
     { title: "Operação", icon: Clock },
     { title: "Localização", icon: MapPin },
     { title: "Condições", icon: AlertTriangle },
-    { title: "Finalização", icon: Camera },
+    { title: "Finalização", icon: CheckCircle2 },
   ];
 
   const renderStep = () => {
@@ -298,29 +297,27 @@ export default function App() {
       case 1:
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-stone-500 mb-2">4. Início</label>
-                <input
-                  type="time"
-                  name="horario_inicio"
-                  value={formData.horario_inicio}
-                  onChange={handleInputChange}
-                  className="w-full p-3 sm:p-4 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none transition-all"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-stone-500 mb-2">5. Término</label>
-                <input
-                  type="time"
-                  name="horario_termino"
-                  value={formData.horario_termino}
-                  onChange={handleInputChange}
-                  className="w-full p-3 sm:p-4 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none transition-all"
-                  required
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-500 mb-2">4. Início</label>
+              <input
+                type="time"
+                name="horario_inicio"
+                value={formData.horario_inicio}
+                onChange={handleInputChange}
+                className="w-full p-3 sm:p-4 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-500 mb-2">5. Término</label>
+              <input
+                type="time"
+                name="horario_termino"
+                value={formData.horario_termino}
+                onChange={handleInputChange}
+                className="w-full p-3 sm:p-4 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none transition-all"
+                required
+              />
             </div>
             <div>
               <label className="block text-sm font-semibold text-stone-500 mb-2">6. Supervisão</label>
@@ -332,8 +329,13 @@ export default function App() {
                 required
               >
                 <option value="">Selecione a supervisão</option>
-                {SUPERVISAO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                {SUPERVISAO_OPTIONS.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
               </select>
+              {formData.email_supervisor && (
+                <p className="mt-2 text-[10px] text-stone-400 px-2 italic">
+                  O relatório será enviado para: {formData.email_supervisor}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-stone-500 mb-2">7. Operação</label>
@@ -503,26 +505,14 @@ export default function App() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-500 mb-2">27. Foto ou arquivo</label>
-              <div className="relative">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                  accept="image/*,application/pdf"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-stone-300 rounded-2xl cursor-pointer hover:bg-stone-50 transition-all"
-                >
-                  <Camera className="w-8 h-8 text-stone-400 mb-2" />
-                  <span className="text-sm text-stone-500">
-                    {file ? file.name : "Clique para carregar arquivo"}
-                  </span>
-                </label>
-              </div>
+            <div className="p-4 bg-lime-50 border border-lime-100 rounded-2xl">
+              <p className="text-sm text-lime-700 font-medium flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                O relatório será enviado automaticamente para:
+              </p>
+              <p className="text-xs text-lime-600 mt-1 font-mono">
+                {formData.email_supervisor || "Selecione a supervisão no passo 1"}
+              </p>
             </div>
           </div>
         );
@@ -566,6 +556,13 @@ export default function App() {
             </button>
           )}
           <button 
+            onClick={() => setShowSettings(true)}
+            className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-400"
+            title="Configurações"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button 
             onClick={exportToExcel}
             className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-lime-500"
             title="Exportar Excel"
@@ -583,8 +580,29 @@ export default function App() {
             <p className="text-zinc-400 mb-8 text-sm sm:text-base">Escolha uma das opções abaixo para continuar.</p>
             
             <div className="flex flex-col gap-4 w-full max-w-sm">
+              <div className="text-left mb-2">
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 ml-1">E-mail Corporativo para Relatórios</label>
+                <input
+                  type="email"
+                  value={formData.email_usuario}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ ...prev, email_usuario: val }));
+                    localStorage.setItem('agro_email_usuario', val);
+                  }}
+                  placeholder="seu-email@cocal.com.br"
+                  className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-2xl focus:ring-2 focus:ring-lime-500 outline-none text-zinc-100 text-sm transition-all"
+                />
+              </div>
+
               <button 
-                onClick={() => setViewState('form')}
+                onClick={() => {
+                  if (!formData.email_usuario) {
+                    setError('Por favor, preencha seu e-mail corporativo antes de iniciar.');
+                    return;
+                  }
+                  setViewState('form');
+                }}
                 className="w-full flex items-center justify-center gap-3 bg-lime-600 hover:bg-lime-700 text-white transition-all py-4 rounded-2xl font-bold shadow-lg shadow-lime-950"
               >
                 <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -602,10 +620,55 @@ export default function App() {
           </div>
         )}
 
+        <AnimatePresence>
+          {showTestSuccess && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed inset-0 flex items-center justify-center z-[60] p-4 bg-black/60 backdrop-blur-sm"
+            >
+              <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
+                <div className="w-16 h-16 bg-lime-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-lime-500" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Teste Enviado!</h3>
+                <p className="text-zinc-400 text-sm mb-6">
+                  O relatório de teste foi enviado com sucesso. Verifique sua caixa de entrada e spam em instantes.
+                </p>
+                <button 
+                  onClick={() => setShowTestSuccess(false)}
+                  className="w-full py-3 bg-lime-600 hover:bg-lime-700 text-white rounded-xl font-bold transition-all"
+                >
+                  ENTENDIDO
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {viewState === 'list' && (
           <div className="mt-4">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">Análises Anteriores</h2>
+              
+              <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2 shadow-sm">
+                <Calendar className="w-4 h-4 text-stone-400" />
+                <input 
+                  type="date" 
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="text-sm outline-none bg-transparent text-stone-600"
+                />
+                {dateFilter && (
+                  <button 
+                    onClick={() => setDateFilter('')}
+                    className="p-1 hover:bg-stone-100 rounded-full text-stone-400"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
             
             {savedAnalyses.length === 0 ? (
@@ -614,21 +677,136 @@ export default function App() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {savedAnalyses.map((analysis, idx) => (
-                  <div key={idx} className="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-bold text-stone-900">{analysis.nome || 'Sem nome'}</h3>
-                      <p className="text-sm text-stone-500">Data: {analysis.data} | Matrícula: {analysis.matricula}</p>
+                {savedAnalyses
+                  .filter(a => !dateFilter || a.data === dateFilter)
+                  .map((analysis, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => setSelectedAnalysis(analysis)}
+                    className="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 sm:p-6 flex flex-col gap-4 text-left hover:border-lime-500 transition-all group"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                      <div>
+                        <h3 className="font-bold text-stone-900 group-hover:text-lime-600 transition-colors">{analysis.nome || 'Sem nome'}</h3>
+                        <p className="text-sm text-stone-500">Data: {analysis.data} | Matrícula: {analysis.matricula}</p>
+                        <p className="text-xs text-stone-400 mt-1">Operação: {analysis.operacao}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs font-bold px-3 py-1 bg-lime-100 text-lime-700 rounded-full w-fit">
+                          Concluída
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-lime-500 transition-all" />
+                      </div>
                     </div>
-                    <div className="text-xs font-bold px-3 py-1 bg-lime-100 text-lime-700 rounded-full w-fit">
-                      Concluída
-                    </div>
-                  </div>
+                  </button>
                 ))}
+                {savedAnalyses.filter(a => !dateFilter || a.data === dateFilter).length === 0 && (
+                  <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-8 text-center">
+                    <p className="text-stone-500">Nenhuma análise encontrada para esta data.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
+
+        {/* Report Modal */}
+        <AnimatePresence>
+          {selectedAnalysis && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
+            >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative custom-scrollbar"
+              >
+                <button 
+                  onClick={() => setSelectedAnalysis(null)}
+                  className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-lime-100 p-3 rounded-2xl border border-lime-200">
+                    <ClipboardCheck className="w-6 h-6 text-lime-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-stone-900">Relatório de Inspeção</h2>
+                    <p className="text-xs text-stone-500 font-medium">Protocolo: {selectedAnalysis.timestamp?.split('T')[0]}-{Math.random().toString(36).substr(2, 5).toUpperCase()}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-lime-600 uppercase tracking-wider">Identificação</h3>
+                    <div className="space-y-2">
+                      <DetailItem label="Funcionário" value={selectedAnalysis.nome} />
+                      <DetailItem label="Matrícula" value={selectedAnalysis.matricula} />
+                      <DetailItem label="E-mail do Autor" value={selectedAnalysis.email_usuario} />
+                      <DetailItem label="Data" value={selectedAnalysis.data} />
+                      <DetailItem label="Horário" value={`${selectedAnalysis.horario_inicio} - ${selectedAnalysis.horario_termino}`} />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-lime-600 uppercase tracking-wider">Localização</h3>
+                    <div className="space-y-2">
+                      <DetailItem label="Unidade" value={selectedAnalysis.unidade} />
+                      <DetailItem label="Fazenda" value={selectedAnalysis.fazenda} />
+                      <DetailItem label="Setor" value={selectedAnalysis.setor} />
+                      <DetailItem label="Supervisão" value={selectedAnalysis.supervisao} />
+                      <DetailItem label="Operação" value={selectedAnalysis.operacao} />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-4">
+                    <h3 className="text-sm font-bold text-lime-600 uppercase tracking-wider">Condições da Área</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+                      <DetailItem label="11. Trajeto" value={selectedAnalysis.condicoes_trajeto} />
+                      <DetailItem label="12. Carreadores" value={selectedAnalysis.condicoes_carreadores} />
+                      <DetailItem label="13. Cercas" value={selectedAnalysis.condicoes_cercas} />
+                      <DetailItem label="14. Placas" value={selectedAnalysis.conservacao_placas} />
+                      <DetailItem label="15. Rede Elétrica" value={selectedAnalysis.rede_eletrica} />
+                      <DetailItem label="16. Declive" value={selectedAnalysis.area_declive} />
+                      <DetailItem label="17. Árvores" value={selectedAnalysis.arvores_talhoes} />
+                      <DetailItem label="18. Canal Vinhaça" value={selectedAnalysis.canal_vinhaca} />
+                      <DetailItem label="19. Canal Escoador" value={selectedAnalysis.canal_escoador} />
+                      <DetailItem label="20. Pontes" value={selectedAnalysis.pontes_danificadas} />
+                      <DetailItem label="21. Erosões" value={selectedAnalysis.erosoes_area} />
+                      <DetailItem label="22. Pedras" value={selectedAnalysis.presenca_pedras} />
+                      <DetailItem label="23. Culturas Vizinhas" value={selectedAnalysis.culturas_vizinhas} />
+                      <DetailItem label="24. Sede" value={selectedAnalysis.sede_fazenda} />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-4">
+                    <h3 className="text-sm font-bold text-lime-600 uppercase tracking-wider">Conclusão</h3>
+                    <div className="space-y-2">
+                      <DetailItem label="25. Observação" value={selectedAnalysis.observacao_area} />
+                      <DetailItem label="26. Patrol" value={selectedAnalysis.necessidade_patrol} />
+                      <DetailItem label="Supervisor Notificado" value={selectedAnalysis.email_supervisor} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-stone-100 flex justify-end">
+                  <button 
+                    onClick={() => setSelectedAnalysis(null)}
+                    className="px-6 py-2 bg-stone-900 text-white rounded-xl font-bold hover:bg-stone-800 transition-colors"
+                  >
+                    Fechar Relatório
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {viewState === 'form' && (
           <>
@@ -686,6 +864,17 @@ export default function App() {
                       {renderStep()}
                     </motion.div>
                   </AnimatePresence>
+
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 p-4 bg-red-950/50 border border-red-900 rounded-2xl flex items-start gap-3"
+                    >
+                      <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-200">{error}</p>
+                    </motion.div>
+                  )}
 
                   <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
                     {step > 0 && (
@@ -751,6 +940,152 @@ export default function App() {
           background: #d1d5db;
         }
       `}</style>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-lime-950 p-3 rounded-2xl border border-lime-900">
+                  <Settings className="w-6 h-6 text-lime-500" />
+                </div>
+                <h2 className="text-xl font-bold text-zinc-100">Configurações</h2>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-zinc-400 mb-2">URL do Google Sheets (Apps Script)</label>
+                  <p className="text-xs text-zinc-500 mb-3">
+                    Cole aqui a URL do Web App gerada pelo Google Apps Script para salvar as análises diretamente na sua planilha.
+                  </p>
+                  <input
+                    type="url"
+                    value={sheetsUrl}
+                    onChange={(e) => setSheetsUrl(e.target.value)}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-lime-500 outline-none text-zinc-100 text-sm"
+                  />
+                </div>
+                
+                <button
+                  onClick={() => {
+                    localStorage.setItem('agro_sheets_url', sheetsUrl);
+                    setShowSettings(false);
+                  }}
+                  className="w-full bg-lime-600 hover:bg-lime-700 text-white py-3 rounded-xl font-bold transition-colors mt-4"
+                >
+                  Salvar Configurações
+                </button>
+
+                <div className="pt-4 border-t border-zinc-800 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-zinc-400 mb-2">E-mail para Teste</label>
+                    <input
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      placeholder="seu-email@exemplo.com"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-lime-500 outline-none text-zinc-100 text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!sheetsUrl) {
+                        setError('Configure a URL do Google Sheets primeiro!');
+                        return;
+                      }
+                      if (!testEmail) {
+                        setError('Preencha o e-mail de teste!');
+                        return;
+                      }
+                      setLoading(true);
+                      setError(null);
+                      try {
+                        // Simula um relatório completo para teste
+                        const testPayload = {
+                          data: new Date().toISOString().split('T')[0],
+                          matricula: "000000",
+                          nome: "USUÁRIO DE TESTE",
+                          horario_inicio: "08:00",
+                          horario_termino: "17:00",
+                          supervisao: "TESTE DE SISTEMA",
+                          operacao: "DIAGNÓSTICO DE E-MAIL",
+                          setor: "999",
+                          fazenda: "FAZENDA MODELO",
+                          unidade: "TESTE",
+                          condicoes_trajeto: "Ótima",
+                          condicoes_carreadores: "Ótima",
+                          condicoes_cercas: "Sim",
+                          conservacao_placas: "Boa",
+                          rede_eletrica: "Sim",
+                          area_declive: "Não",
+                          arvores_talhoes: "Não",
+                          canal_vinhaca: "Não",
+                          canal_escoador: "Não",
+                          pontes_danificadas: "Não",
+                          erosoes_area: "Não",
+                          presenca_pedras: "Não",
+                          culturas_vizinhas: "Não",
+                          sede_fazenda: "Não",
+                          observacao_area: `ESTE É UM RELATÓRIO DE TESTE COMPLETO.
+--------------------------------------------------
+DADOS DA ÁREA:
+- Trajeto: Ótimo
+- Cercas: Sim
+- Rede Elétrica: Sim
+- Erosões: Não
+- Pedras: Não
+- Necessidade Patrol: Não
+
+Este e-mail simula como os encarregados receberão as notificações de inspeção.`,
+                          necessidade_patrol: "Não",
+                          email_supervisor: testEmail,
+                          email_usuario: testEmail, // No final
+                          timestamp: new Date().toISOString(),
+                        };
+
+                        await fetch(sheetsUrl, {
+                          method: 'POST',
+                          mode: 'no-cors',
+                          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                          body: JSON.stringify(testPayload),
+                        });
+                        setShowTestSuccess(true);
+                      } catch (e) {
+                        setError('Erro ao enviar teste: ' + (e as Error).message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="w-full py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-zinc-700 transition-colors"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                    Enviar E-mail de Teste
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

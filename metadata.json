@@ -1,6 +1,6 @@
 {
   "name": "Análise de Riscos Agrícola",
-  "description": "Aplicativo para análise de riscos de setor na produção agrícola com integração Supabase e login Outlook.",
+  "description": "Aplicativo para análise de riscos de setor na produção agrícola com integração de dados.",
   "requestFramePermissions": [
     "camera"
   ]
