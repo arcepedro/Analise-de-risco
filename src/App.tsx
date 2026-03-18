@@ -156,23 +156,46 @@ export default function App() {
           email: authEmail,
           nome: authName,
           matricula: authMatricula,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          role: 'user'
         });
 
+        // Send Welcome Email via Google Sheets Script
+        if (sheetsUrl) {
+          try {
+            await fetch(sheetsUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                type: 'WELCOME_EMAIL',
+                email: authEmail,
+                nome: authName,
+                matricula: authMatricula,
+                timestamp: new Date().toISOString()
+              }),
+            });
+          } catch (e) {
+            console.warn('Could not send welcome email via script:', e);
+          }
+        }
+
         await sendEmailVerification(u);
-        setAuthError('Conta criada! Um e-mail de verificação foi enviado. Por favor, verifique sua caixa de entrada.');
+        setAuthError('Conta criada com sucesso! Verifique seu e-mail para confirmar o cadastro.');
         setAuthMode('login');
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setAuthError('E-mail ou senha incorretos.');
       } else if (err.code === 'auth/email-already-in-use') {
         setAuthError('Este e-mail já está em uso.');
       } else if (err.code === 'auth/weak-password') {
         setAuthError('A senha deve ter pelo menos 6 caracteres.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setAuthError('O login por E-mail/Senha ainda não foi ativado no Console do Firebase. Ative-o em Authentication > Sign-in method.');
       } else {
-        setAuthError('Ocorreu um erro ao tentar autenticar. Tente novamente.');
+        setAuthError('Erro ao autenticar: ' + err.message);
       }
     } finally {
       setAuthLoading(false);
