@@ -30,7 +30,8 @@ export const SUPERVISAO_OPTIONS = [
   { label: "NRD - Herbicida", email: "herbicida.nrd@grupococal.onmicrosoft.com" },
   { label: "PPTA - Preparo e Plantio", email: "preparoeplantioppta@cocal.com.br" },
   { label: "PPTA - Tratos Culturais", email: "tratosculturaisppt@cocal.com.br" },
-  { label: "PPTA - Herbicida", email: "herbicida.ppt@cocal.com.br" }
+  { label: "PPTA - Herbicida", email: "herbicida.ppt@cocal.com.br" },
+  { label: "TESTE", email: "pedro.arce@cocal.com.br" }
 ];
 
 export const OPERACAO_OPTIONS = [

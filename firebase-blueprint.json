@@ -51,6 +51,26 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "email_usuario", "timestamp"]
+    },
+    "StopWork": {
+      "title": "Stop Work Report",
+      "description": "Stores stop work reports submitted by users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "email_usuario": { "type": "string", "format": "email" },
+        "data": { "type": "string" },
+        "equipe": { "type": "string" },
+        "turno": { "type": "string", "enum": ["A", "B", "C"] },
+        "gestor": { "type": "string" },
+        "duracao": { "type": "string" },
+        "local_setor": { "type": "string" },
+        "temas": { "type": "string" },
+        "foto": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email_usuario", "timestamp"]
     }
   },
   "firestore": {
@@ -61,6 +81,10 @@
     "/analyses/{analysisId}": {
       "schema": "Analysis",
       "description": "Analysis reports"
+    },
+    "/stop_work/{id}": {
+      "schema": "StopWork",
+      "description": "Stop work reports"
     }
   }
 }

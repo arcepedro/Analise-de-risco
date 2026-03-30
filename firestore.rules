@@ -48,6 +48,21 @@ service cloud.firestore {
     //   - email_supervisor: string
     //   - timestamp: string (required)
     //
+    // Collection: stop_work
+    // Document ID: random
+    // Fields:
+    //   - userId: string (required)
+    //   - email_usuario: string (required)
+    //   - data: string
+    //   - equipe: string
+    //   - turno: string (A, B, C)
+    //   - gestor: string
+    //   - duracao: string
+    //   - local_setor: string
+    //   - temas: string
+    //   - foto: string
+    //   - timestamp: string (required)
+    //
     // ===============================================================
 
     // Helper Functions
@@ -79,6 +94,13 @@ service cloud.firestore {
              data.timestamp is string;
     }
 
+    function isValidStopWork(data) {
+      return data.keys().hasAll(['userId', 'email_usuario', 'timestamp']) &&
+             data.userId is string &&
+             data.email_usuario is string &&
+             data.timestamp is string;
+    }
+
     // Match users collection
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
@@ -91,7 +113,15 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidAnalysis(request.resource.data);
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidAnalysis(request.resource.data) && isAdmin(); // Only admins can update reports for now
-      allow delete: if isAdmin();
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Match stop_work collection
+    match /stop_work/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidStopWork(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidStopWork(request.resource.data) && isAdmin();
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }
