@@ -393,8 +393,16 @@ function AppContent() {
     setTestLogs(prev => [...prev, `[${time}] ${msg}`]);
     console.log(`[TEST LOG] ${msg}`);
   };
-  const [sheetsUrlAnalise, setSheetsUrlAnalise] = useState(localStorage.getItem('agro_sheets_url_analise') || 'https://script.google.com/macros/s/AKfycbzMZwMR71gH4Xb2t5Jal0-5rBYslmEyjMcPmofNKO3WiUvtAMKkcSNiu3A4WNN5MdI/exec');
-  const [sheetsUrlStopWork, setSheetsUrlStopWork] = useState(localStorage.getItem('agro_sheets_url_stopwork') || 'https://script.google.com/macros/s/AKfycby3rqwZsMmh3DuQlc9EY2kU7EQB9gaVAIBKHiS0r_LN88TDBZVUBUjPAHfMR1902PZl/exec');
+  const [sheetsUrlAnalise, setSheetsUrlAnalise] = useState(
+    import.meta.env.VITE_GOOGLE_SHEETS_ANALISE_URL || 
+    localStorage.getItem('agro_sheets_url_analise') || 
+    'https://script.google.com/macros/s/AKfycbzMZwMR71gH4Xb2t5Jal0-5rBYslmEyjMcPmofNKO3WiUvtAMKkcSNiu3A4WNN5MdI/exec'
+  );
+  const [sheetsUrlStopWork, setSheetsUrlStopWork] = useState(
+    import.meta.env.VITE_GOOGLE_SHEETS_STOPWORK_URL || 
+    localStorage.getItem('agro_sheets_url_stopwork') || 
+    'https://script.google.com/macros/s/AKfycby3rqwZsMmh3DuQlc9EY2kU7EQB9gaVAIBKHiS0r_LN88TDBZVUBUjPAHfMR1902PZl/exec'
+  );
   const [lastSyncStatus, setLastSyncStatus] = useState<'success' | 'error' | 'idle'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastPayload, setLastPayload] = useState<any>(null);
