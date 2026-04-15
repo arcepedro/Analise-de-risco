@@ -1,90 +1,90 @@
 {
   "entities": {
     "User": {
-      "title": "User Profile",
-      "description": "Stores user profile information",
+      "title": "User",
+      "description": "User profile information",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "Firebase Auth UID" },
-        "email": { "type": "string", "format": "email", "description": "User's Outlook email" },
-        "nome": { "type": "string", "description": "Full name" },
-        "matricula": { "type": "string", "description": "Employee ID" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "uid": { "type": "string", "description": "Unique user ID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "nome": { "type": "string", "description": "User full name" },
+        "matricula": { "type": "string", "description": "User registration number" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" }
       },
-      "required": ["uid", "email"]
+      "required": ["uid", "email", "nome", "matricula", "createdAt", "role"]
     },
     "Analysis": {
-      "title": "Risk Analysis Report",
-      "description": "Stores risk analysis reports submitted by users",
+      "title": "Analysis",
+      "description": "Risk analysis report",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string", "description": "UID of the user who submitted" },
-        "email_usuario": { "type": "string", "format": "email" },
-        "data": { "type": "string" },
-        "matricula": { "type": "string" },
-        "nome": { "type": "string" },
-        "horario_inicio": { "type": "string" },
-        "horario_termino": { "type": "string" },
-        "supervisao": { "type": "string" },
-        "operacao": { "type": "string" },
-        "setor": { "type": "string" },
-        "fazenda": { "type": "string" },
-        "unidade": { "type": "string" },
-        "condicoes_trajeto": { "type": "string" },
-        "condicoes_carreadores": { "type": "string" },
-        "condicoes_cercas": { "type": "string" },
-        "conservacao_placas": { "type": "string" },
-        "rede_eletrica": { "type": "string" },
-        "area_declive": { "type": "string" },
-        "arvores_talhoes": { "type": "string" },
-        "canal_vinhaca": { "type": "string" },
-        "canal_escoador": { "type": "string" },
-        "pontes_danificadas": { "type": "string" },
-        "erosoes_area": { "type": "string" },
-        "presenca_pedras": { "type": "string" },
-        "culturas_vizinhas": { "type": "string" },
-        "sede_fazenda": { "type": "string" },
-        "observacao_area": { "type": "string" },
-        "necessidade_patrol": { "type": "string" },
-        "email_supervisor": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "data": { "type": "string", "description": "Report date" },
+        "matricula": { "type": "string", "description": "User registration number" },
+        "nome": { "type": "string", "description": "User full name" },
+        "horario_inicio": { "type": "string", "description": "Start time" },
+        "horario_termino": { "type": "string", "description": "End time" },
+        "supervisao": { "type": "string", "description": "Supervision area" },
+        "operacao": { "type": "string", "description": "Operation type" },
+        "setor": { "type": "string", "description": "Sector" },
+        "fazenda": { "type": "string", "description": "Farm" },
+        "unidade": { "type": "string", "description": "Unit" },
+        "condicoes_trajeto": { "type": "string", "description": "Route conditions" },
+        "condicoes_carreadores": { "type": "string", "description": "Internal road conditions" },
+        "condicoes_cercas": { "type": "string", "description": "Fence conditions" },
+        "conservacao_placas": { "type": "string", "description": "Sign conservation" },
+        "rede_eletrica": { "type": "string", "description": "Electrical grid status" },
+        "area_declive": { "type": "string", "description": "Slope area status" },
+        "arvores_talhoes": { "type": "string", "description": "Trees in plots status" },
+        "canal_vinhaca": { "type": "string", "description": "Vinasse canal status" },
+        "canal_escoador": { "type": "string", "description": "Drainage canal status" },
+        "pontes_danificadas": { "type": "string", "description": "Damaged bridges status" },
+        "erosoes_area": { "type": "string", "description": "Erosion status" },
+        "presenca_pedras": { "type": "string", "description": "Presence of stones status" },
+        "culturas_vizinhas": { "type": "string", "description": "Neighboring crops status" },
+        "sede_fazenda": { "type": "string", "description": "Farm headquarters status" },
+        "observacao_area": { "type": "string", "description": "Area observations" },
+        "necessidade_patrol": { "type": "string", "description": "Patrol machine need" },
+        "foto_arquivo": { "type": "string", "description": "Photo URL" },
+        "email_supervisor": { "type": "string", "format": "email", "description": "Supervisor email" },
+        "email_usuario": { "type": "string", "format": "email", "description": "User email" },
+        "userId": { "type": "string", "description": "User ID who created the report" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
       },
-      "required": ["userId", "email_usuario", "timestamp"]
+      "required": ["userId", "timestamp", "email_supervisor", "email_usuario"]
     },
     "StopWork": {
-      "title": "Stop Work Report",
-      "description": "Stores stop work reports submitted by users",
+      "title": "StopWork",
+      "description": "Stop work registration",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "email_usuario": { "type": "string", "format": "email" },
-        "data": { "type": "string" },
-        "equipe": { "type": "string" },
-        "turno": { "type": "string", "enum": ["A", "B", "C"] },
-        "gestor": { "type": "string" },
-        "duracao": { "type": "string" },
-        "local_setor": { "type": "string" },
-        "temas": { "type": "string" },
-        "foto": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "data": { "type": "string", "description": "Registration date" },
+        "equipe": { "type": "string", "description": "Team name" },
+        "turno": { "type": "string", "description": "Shift" },
+        "gestor": { "type": "string", "description": "Manager name" },
+        "duracao": { "type": "string", "description": "Duration" },
+        "local_setor": { "type": "string", "description": "Location/Sector" },
+        "temas": { "type": "string", "description": "Topics addressed" },
+        "foto": { "type": "string", "description": "Photo URL" },
+        "email_usuario": { "type": "string", "format": "email", "description": "User email" },
+        "userId": { "type": "string", "description": "User ID who created the registration" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
       },
-      "required": ["userId", "email_usuario", "timestamp"]
+      "required": ["userId", "timestamp", "email_usuario"]
     }
   },
   "firestore": {
-    "/users/{uid}": {
+    "/users/{userId}": {
       "schema": "User",
       "description": "User profile documents"
     },
     "/analyses/{analysisId}": {
       "schema": "Analysis",
-      "description": "Analysis reports"
+      "description": "Risk analysis reports"
     },
-    "/stop_work/{id}": {
+    "/stop_work/{stopWorkId}": {
       "schema": "StopWork",
-      "description": "Stop work reports"
+      "description": "Stop work registrations"
     }
   }
 }
