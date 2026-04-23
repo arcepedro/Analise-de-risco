@@ -1,0 +1,20 @@
+{
+  "name": "Gestão de Risco & Stop Work",
+  "short_name": "Risco/Stop",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "https://ifudxfllenrtbhollajq.supabase.co/storage/v1/object/sign/SMART%20CALDA%20-%20OS%20E%20CALDA/logo%20cocal%20sem%20texto.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV80MzYxYzhmMC1mYjlhLTRlOGItOTFiYi0wZDVhNjdkMDE2YzEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJTTUFSVCBDQUxEQSAtIE9TIEUgQ0FMREEvbG9nbyBjb2NhbCBzZW0gdGV4dG8ucG5nIiwiaWF0IjoxNzc2OTU1NTUyLCJleHAiOjE4MDg0OTE1NTJ9.mz6hXoP_jNKW1gSNq6CLu3jjrE3qJoqabPa1efEwfI4",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ifudxfllenrtbhollajq.supabase.co/storage/v1/object/sign/SMART%20CALDA%20-%20OS%20E%20CALDA/logo%20cocal%20sem%20texto.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV80MzYxYzhmMC1mYjlhLTRlOGItOTFiYi0wZDVhNjdkMDE2YzEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJTTUFSVCBDQUxEQSAtIE9TIEUgQ0FMREEvbG9nbyBjb2NhbCBzZW0gdGV4dG8ucG5nIiwiaWF0IjoxNzc2OTU1NTUyLCJleHAiOjE4MDg0OTE1NTJ9.mz6hXoP_jNKW1gSNq6CLu3jjrE3qJoqabPa1efEwfI4",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
