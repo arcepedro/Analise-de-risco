@@ -279,7 +279,6 @@ const SearchableSelect = ({
   placeholder: string
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -291,10 +290,6 @@ const SearchableSelect = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const filteredOptions = options.filter(opt => 
-    opt.label.toLowerCase().includes(search.toLowerCase())
-  );
 
   const selectedOption = options.find(opt => opt.value === value);
 
@@ -319,30 +314,16 @@ const SearchableSelect = ({
             transition={{ duration: 0.2 }}
             className="absolute z-50 w-full mt-2 bg-[#111] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
           >
-            <div className="p-2 border-b border-white/10">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar..."
-                  className="w-full pl-9 pr-4 py-2 bg-white/5 rounded-lg text-white text-sm outline-none focus:bg-white/10 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            </div>
-            <div className="max-h-60 overflow-y-auto custom-scrollbar p-2">
-              {filteredOptions.length === 0 ? (
-                <div className="p-3 text-center text-white/40 text-sm">Nenhum resultado encontrado</div>
+            <div className="max-h-80 overflow-y-auto custom-scrollbar p-2">
+              {options.length === 0 ? (
+                <div className="p-3 text-center text-white/40 text-sm">Nenhuma opção disponível</div>
               ) : (
-                filteredOptions.map((opt) => (
+                options.map((opt) => (
                   <div
                     key={opt.value}
                     onClick={() => {
                       onChange(opt.value);
                       setIsOpen(false);
-                      setSearch('');
                     }}
                     className={`p-3 rounded-lg cursor-pointer text-sm transition-colors ${
                       value === opt.value 
@@ -527,6 +508,7 @@ function AppContent() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedType, setSubmittedType] = useState<'analise' | 'stopwork'>('analise');
   const [syncWarning, setSyncWarning] = useState(false);
   const [viewState, setViewState] = useState<'home' | 'form' | 'list' | 'stopwork'>('home');
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
@@ -551,7 +533,7 @@ function AppContent() {
   );
   const [sheetsUrlStopWork, setSheetsUrlStopWork] = useState(
     localStorage.getItem('agro_sheets_url_stopwork') || 
-    'https://script.google.com/macros/s/AKfycbxZRkk7ToRd2cbyTE5wiX3JSIuvQl2RJC3jIla7nMOmsoT5S97s4pbaR_9J0ZWeXEvO/exec'
+    'https://script.google.com/macros/s/AKfycbw0_fFLowSk0v-v9H_QkxNh_AMJkVX37DIYoxYcetG36y9dZlujeRzpcxYCjX9Vs9QV/exec'
   );
   const [lastSyncStatus, setLastSyncStatus] = useState<'success' | 'error' | 'idle'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -585,8 +567,11 @@ function AppContent() {
     const prevDefaultStopWorkUrl3 = 'https://script.google.com/macros/s/AKfycbxCC0J6HN8eoUbl42pq5XEn8g7fusnxAfjR0zZDbXIvxnSvZ3TpfY9cfkDEy1GJBN_n/exec';
     const prevDefaultStopWorkUrl4 = 'https://script.google.com/macros/s/AKfycbxzeDfcBWsDdlnKpHF5RzDQQfLUxGVB7GA0cGWwRExcjX-sawQhdKi9BaKvR4aNfOpD/exec';
     const prevDefaultStopWorkUrl5 = 'https://script.google.com/macros/s/AKfycbxYHhc97RzaEFMbGz927tcrEHMG7BcLIlh_ZIAw0U4rr5Ns_A13vCiossUdVcJ4Jx6C/exec';
-    if (!currentStopWorkUrl || currentStopWorkUrl === '' || currentStopWorkUrl === prevDefaultStopWorkUrl || currentStopWorkUrl === prevDefaultStopWorkUrl2 || currentStopWorkUrl === prevDefaultStopWorkUrl3 || currentStopWorkUrl === prevDefaultStopWorkUrl4 || currentStopWorkUrl === prevDefaultStopWorkUrl5) {
-      const defaultStopWorkUrl = 'https://script.google.com/macros/s/AKfycbxZRkk7ToRd2cbyTE5wiX3JSIuvQl2RJC3jIla7nMOmsoT5S97s4pbaR_9J0ZWeXEvO/exec';
+    const prevDefaultStopWorkUrl6 = 'https://script.google.com/macros/s/AKfycbxZRkk7ToRd2cbyTE5wiX3JSIuvQl2RJC3jIla7nMOmsoT5S97s4pbaR_9J0ZWeXEvO/exec'; // the one previously deployed
+    const prevDefaultStopWorkUrl7 = 'https://script.google.com/macros/s/AKfycbxo0gIY2Kw5S4SgKwPAgpu9QWyUaG_sbduPV5zabA971EdzWBVWg4zWY9M7dk9Peila/exec'; // the one they just gave me
+    
+    if (!currentStopWorkUrl || currentStopWorkUrl === '' || currentStopWorkUrl === prevDefaultStopWorkUrl || currentStopWorkUrl === prevDefaultStopWorkUrl2 || currentStopWorkUrl === prevDefaultStopWorkUrl3 || currentStopWorkUrl === prevDefaultStopWorkUrl4 || currentStopWorkUrl === prevDefaultStopWorkUrl5 || currentStopWorkUrl === prevDefaultStopWorkUrl6 || currentStopWorkUrl === prevDefaultStopWorkUrl7) {
+      const defaultStopWorkUrl = 'https://script.google.com/macros/s/AKfycbw0_fFLowSk0v-v9H_QkxNh_AMJkVX37DIYoxYcetG36y9dZlujeRzpcxYCjX9Vs9QV/exec';
       setSheetsUrlStopWork(defaultStopWorkUrl);
       localStorage.setItem('agro_sheets_url_stopwork', defaultStopWorkUrl);
     }
@@ -666,7 +651,7 @@ function AppContent() {
     sede_fazenda: '',
     observacao_area: '',
     necessidade_patrol: '',
-    foto_arquivo: '',
+    foto_arquivo: [] as string[],
     email_supervisor: '',
     email_usuario: localStorage.getItem('agro_email_usuario') || '',
   });
@@ -679,7 +664,7 @@ function AppContent() {
     duracao: '',
     local_setor: '',
     temas: '',
-    foto: '',
+    foto: [] as string[],
     email_usuario: localStorage.getItem('agro_email_usuario') || '',
   });
 
@@ -709,42 +694,122 @@ function AppContent() {
     }
   };
 
-  const handleFileUpload = async (file: File, type: 'analise' | 'stopwork') => {
-    if (!file || !user) {
-      console.warn('Arquivo ou usuário não encontrado:', { file: !!file, user: !!user });
+  const compressImage = async (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Falha ao comprimir imagem'));
+          }, 'image/jpeg', 0.7); // 70% quality JPEG
+        };
+        img.onerror = (e) => reject(e);
+      };
+      reader.onerror = (e) => reject(e);
+    });
+  };
+
+  const handleFileUpload = async (files: FileList | null, type: 'analise' | 'stopwork') => {
+    if (!files || files.length === 0 || !user) {
       return;
     }
+
+    const currentPhotosCount = type === 'analise' ? formData.foto_arquivo.length : stopWorkData.foto.length;
+    const remainingSlots = 3 - currentPhotosCount;
+
+    if (remainingSlots <= 0) {
+      setError('Você já atingiu o limite máximo de 3 fotos.');
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
     
-    console.log('Iniciando upload do arquivo:', file.name, 'Tamanho:', file.size, 'Tipo:', file.type);
     setUploadingPhoto(true);
+    setError(null);
+    
     try {
-      const storageRef = ref(storage, `photos/${user.uid}/${Date.now()}_${file.name}`);
-      console.log('Referência do storage criada:', storageRef.fullPath);
+      const newUrls: string[] = [];
+      const pasta = type === 'analise' ? 'analise_risco' : 'stop_work';
+      const date = new Date();
+      const dataFormatada = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}h${String(date.getMinutes()).padStart(2, '0')}m`;
       
-      const snapshot = await uploadBytes(storageRef, file);
-      console.log('Upload concluído. Snapshot:', snapshot.metadata.fullPath);
-      
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      console.log('URL de download obtida:', downloadURL);
+      let nomeSetor = '';
+      if (type === 'analise') {
+        nomeSetor = formData.setor ? formData.setor.replace(/[^a-zA-Z0-9]/g, '_') : 'SemSetor';
+      } else {
+        nomeSetor = stopWorkData.local_setor ? stopWorkData.local_setor.replace(/[^a-zA-Z0-9]/g, '_') : 'SemSetor';
+      }
+
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i];
+        console.log(`Comprimindo imagem ${i+1}/${filesToUpload.length}: ${file.name}`);
+        const compressedBlob = await compressImage(file);
+
+        // generate random distinct file name suffix to prevent overwriting in parallel
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const nomeArquivo = `${dataFormatada}_Setor-${nomeSetor}_${i+1}_${randomSuffix}.jpg`;
+        const storageRef = ref(storage, `photos/${user.uid}/${pasta}/${nomeArquivo}`);
+        
+        console.log(`Fazendo upload da imagem ${i+1}...`);
+        const snapshot = await uploadBytes(storageRef, compressedBlob);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        newUrls.push(downloadURL);
+      }
       
       if (type === 'analise') {
-        setFormData(prev => ({ ...prev, foto_arquivo: downloadURL }));
+        setFormData(prev => ({ ...prev, foto_arquivo: [...prev.foto_arquivo, ...newUrls] }));
       } else {
-        setStopWorkData(prev => ({ ...prev, foto: downloadURL }));
+        setStopWorkData(prev => ({ ...prev, foto: [...prev.foto, ...newUrls] }));
       }
-      console.log('✅ Foto enviada com sucesso:', downloadURL);
+      console.log('✅ Foto(s) enviada(s) com sucesso:', newUrls);
     } catch (e) {
       console.error('Erro detalhado ao enviar foto:', e);
-      if (e instanceof Error) {
-        console.error('Mensagem de erro:', e.message);
-        console.error('Stack trace:', e.stack);
-      }
-      setError('Erro ao enviar foto. Verifique sua conexão e as permissões do Firebase Storage.');
+      setError((e as Error).message || 'Erro ao enviar foto. Verifique se o Firebase Storage está ativado no Console.');
     } finally {
-      console.log('Finalizando processo de upload.');
       setUploadingPhoto(false);
     }
   };
+  const handleRemovePhoto = (type: 'analise' | 'stopwork', index: number) => {
+    if (type === 'analise') {
+      setFormData(prev => ({ 
+        ...prev, 
+        foto_arquivo: prev.foto_arquivo.filter((_, i) => i !== index) 
+      }));
+    } else {
+      setStopWorkData(prev => ({ 
+        ...prev, 
+        foto: prev.foto.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
   const handleClearStopWorkHistory = async () => {
     if (!user || savedStopWorks.length === 0) {
       setShowClearStopWorkConfirm(false);
@@ -832,7 +897,7 @@ function AppContent() {
         "Possui alguma sede na fazenda?": formData.sede_fazenda,
         "Alguma outra observação da área?": formData.observacao_area,
         "Á necessidade de máquina amarela - patrol:": formData.necessidade_patrol,
-        "Foto ou arquivo se necessário": formData.foto_arquivo,
+        "Foto ou arquivo se necessário": formData.foto_arquivo.join('\n'),
         "email_supervisor": formData.email_supervisor,
         "email_usuario": formData.email_usuario,
         "timestamp": timestamp
@@ -893,6 +958,7 @@ function AppContent() {
       }
       
       setSubmitted(true);
+      setSubmittedType('analise');
       setStep(0);
       
       // Local storage as backup
@@ -941,7 +1007,7 @@ function AppContent() {
         "DURAÇÃO": stopWorkData.duracao,
         "LOCAL/SETOR": stopWorkData.local_setor,
         "TEMAS ABORDADOS": stopWorkData.temas,
-        "FOTO": stopWorkData.foto,
+        "FOTO": stopWorkData.foto.join('\n'),
         "EMAIL USUARIO": stopWorkData.email_usuario,
         "TIMESTAMP": timestamp,
         "ID USUARIO": user?.uid
@@ -966,9 +1032,10 @@ function AppContent() {
         setLastSyncStatus('error');
       }
       
+      setSubmittedType('stopwork');
       setSubmitted(true);
-      setViewState('home');
-      setStopWorkData(prev => ({ ...prev, equipe: '', turno: '', duracao: '', local_setor: '', temas: '', foto: '' }));
+      // Removed setViewState('home') so it stays available to visually render the submitted screen FIRST.
+      setStopWorkData(prev => ({ ...prev, equipe: '', turno: '', duracao: '', local_setor: '', temas: '', foto: [] }));
     } catch (e) {
       setError('Erro ao enviar dados: ' + (e as Error).message);
     } finally {
@@ -1161,30 +1228,39 @@ function AppContent() {
   }
 
   if (submitted) {
+    const isStopWork = submittedType === 'stopwork';
+    const gradientFrom = isStopWork ? 'from-red-500' : 'from-lime-500';
+    const gradientTo = isStopWork ? 'to-rose-500' : 'to-emerald-500';
+    const textColor = isStopWork ? 'text-red-500' : 'text-[#76b82a]';
+    const btnFrom = isStopWork ? 'from-[#f43f5e]' : 'from-[#76b82a]';
+    const btnTo = isStopWork ? 'from-[#be123c]' : 'to-[#008000]';
+    const btnShadow = isStopWork ? 'shadow-[#f43f5e]/20' : 'shadow-[#76b82a]/20';
+    const mainTitle = isStopWork ? "Stop Work Concluído" : "Relatório Transmitido";
+
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <motion.div 
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md w-full bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] border border-white/10 p-10 text-center shadow-2xl relative overflow-hidden"
+          className="max-w-md w-full bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] p-10 text-center shadow-2xl relative overflow-hidden"
         >
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-lime-500 to-emerald-500" />
+          <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${gradientFrom} ${gradientTo}`} />
           
-          <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-inner">
+          <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center mx-auto mb-8 shadow-inner">
             {syncWarning ? (
               <AlertTriangle className="w-12 h-12 text-[#f59e0b] animate-pulse" />
             ) : (
-              <CheckCircle2 className="w-12 h-12 text-[#76b82a]" />
+              <CheckCircle2 className={`w-12 h-12 ${textColor}`} />
             )}
           </div>
           
           <div className="space-y-6 mb-10">
             <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-              {syncWarning ? "Sincronização Pendente" : "Relatório Transmitido"}
+              {syncWarning ? "Sincronização Pendente" : mainTitle}
             </h2>
             {syncWarning && (
               <p className="text-xs font-mono text-[#f59e0b]/70 uppercase tracking-widest leading-relaxed">
-                O relatório foi salvo localmente, mas a sincronização falhou.
+                O registro foi salvo localmente, mas a sincronização falhou.
               </p>
             )}
           </div>
@@ -1194,7 +1270,7 @@ function AppContent() {
               <button
                 disabled={submitting}
                 onClick={handleRetrySync}
-                className="w-full py-3 bg-gradient-to-r from-[#f59e0b] to-[#b45309] text-black font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#f59e0b]/20 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gradient-to-r from-[#f59e0b] to-[#b45309] text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#f59e0b]/20 transition-all flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                 Re-tentar Sincronização
@@ -1206,9 +1282,11 @@ function AppContent() {
                 setSubmitted(false);
                 setStep(0);
                 setViewState('home');
-                setFormData({ ...formData, matricula: '', nome: '', setor: '', fazenda: '', observacao_area: '' });
+                if (!isStopWork) {
+                  setFormData({ ...formData, matricula: '', nome: '', setor: '', fazenda: '', observacao_area: '' });
+                }
               }}
-              className="w-full py-3 bg-gradient-to-r from-[#76b82a] to-[#008000] text-black font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#76b82a]/20 transition-all"
+              className={`w-full py-3 bg-gradient-to-r ${btnFrom} ${btnTo} text-white font-black uppercase tracking-widest rounded-xl shadow-xl ${btnShadow} transition-all`}
             >
               Voltar ao Início
             </button>
@@ -1228,7 +1306,7 @@ function AppContent() {
 
   const renderStopWorkForm = () => {
     return (
-      <div className="space-y-6">
+      <form onSubmit={handleStopWorkSubmit} className="space-y-6">
         <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-[2rem] mb-8">
           <div className="flex items-center gap-3 mb-2">
             <ShieldAlert className="w-6 h-6 text-red-500" />
@@ -1341,28 +1419,50 @@ function AppContent() {
                 <input 
                   type="file" 
                   accept="image/*"
+                  multiple
                   className="hidden" 
-                  disabled={uploadingPhoto}
+                  disabled={uploadingPhoto || stopWorkData.foto.length >= 3}
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, 'stopwork');
+                    handleFileUpload(e.target.files, 'stopwork');
                   }}
                 />
               </label>
             </div>
-            {stopWorkData.foto && (
-              <div className="mt-4 p-2 bg-black border border-white/10 rounded-xl overflow-hidden">
-                <img 
-                  src={stopWorkData.foto} 
-                  alt="Preview" 
-                  className="w-full h-32 object-cover rounded-lg"
-                  referrerPolicy="no-referrer"
-                />
-                <p className="mt-2 text-[8px] font-mono text-red-500 uppercase tracking-widest truncate">URL: {stopWorkData.foto}</p>
+            {stopWorkData.foto.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {stopWorkData.foto.map((url, index) => (
+                  <div key={index} className="p-2 bg-black border border-white/10 rounded-xl overflow-hidden relative group">
+                    <button 
+                      type="button"
+                      onClick={() => handleRemovePhoto('stopwork', index)}
+                      className="absolute top-4 right-4 bg-red-600 border border-white/20 text-white p-2 rounded-full opacity-90 hover:opacity-100 hover:bg-red-500 hover:scale-110 transition-all shadow-xl z-10"
+                      title="Excluir Foto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <img 
+                      src={url} 
+                      alt={`Preview ${index + 1}`} 
+                      className="w-full h-32 object-cover rounded-lg"
+                      referrerPolicy="no-referrer"
+                    />
+                    <p className="mt-2 text-[8px] font-mono text-red-500 uppercase tracking-widest truncate">URL: {url}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
+
+        {error && (
+          <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-4">
+            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Erro ao Enviar</p>
+              <p className="text-xs font-mono text-red-200/70">{error}</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-4 pt-6">
           <button
@@ -1373,9 +1473,8 @@ function AppContent() {
             Cancelar
           </button>
           <button
-            type="button"
+            type="submit"
             disabled={submitting}
-            onClick={handleStopWorkSubmit}
             className="flex-[2] py-3 bg-gradient-to-r from-[#f43f5e] to-[#be123c] text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#f43f5e]/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
@@ -1383,10 +1482,10 @@ function AppContent() {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>Transmitindo...</span>
               </div>
-            ) : "Finalizar Stop Work"}
+            ) : "FINALIZAR"}
           </button>
         </div>
-      </div>
+      </form>
     );
   };
   const renderStep = () => {
@@ -1441,7 +1540,7 @@ function AppContent() {
       case 1:
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-end">
               <div>
                 <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest text-[#76b82a]">4. Horário de início</label>
                 <input
@@ -1449,7 +1548,7 @@ function AppContent() {
                   name="horario_inicio"
                   value={formData.horario_inicio}
                   onChange={handleInputChange}
-                  className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#76b82a]/50 outline-none"
+                  className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white text-white/40 focus:border-[#76b82a]/50 outline-none"
                   required
                 />
               </div>
@@ -1460,7 +1559,7 @@ function AppContent() {
                   name="horario_termino"
                   value={formData.horario_termino}
                   onChange={handleInputChange}
-                  className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#76b82a]/50 outline-none"
+                  className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white text-white/40 focus:border-[#76b82a]/50 outline-none"
                   required
                 />
               </div>
@@ -1670,24 +1769,36 @@ function AppContent() {
                   <input 
                     type="file" 
                     accept="image/*"
+                    multiple
                     className="hidden" 
-                    disabled={uploadingPhoto}
+                    disabled={uploadingPhoto || formData.foto_arquivo.length >= 3}
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file, 'analise');
+                      handleFileUpload(e.target.files, 'analise');
                     }}
                   />
                 </label>
               </div>
-              {formData.foto_arquivo && (
-                <div className="mt-4 p-2 bg-black border border-white/10 rounded-xl overflow-hidden">
-                  <img 
-                    src={formData.foto_arquivo} 
-                    alt="Preview" 
-                    className="w-full h-32 object-cover rounded-lg"
-                    referrerPolicy="no-referrer"
-                  />
-                  <p className="mt-2 text-[8px] font-mono text-[#76b82a] uppercase tracking-widest truncate">URL: {formData.foto_arquivo}</p>
+              {formData.foto_arquivo.length > 0 && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {formData.foto_arquivo.map((url, index) => (
+                    <div key={index} className="p-2 bg-black border border-white/10 rounded-xl overflow-hidden relative group">
+                      <button 
+                        type="button"
+                        onClick={() => handleRemovePhoto('analise', index)}
+                        className="absolute top-4 right-4 bg-red-600 border border-white/20 text-white p-2 rounded-full opacity-90 hover:opacity-100 hover:bg-red-500 hover:scale-110 transition-all shadow-xl z-10"
+                        title="Excluir Foto"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <img 
+                        src={url} 
+                        alt={`Preview ${index + 1}`} 
+                        className="w-full h-32 object-cover rounded-lg"
+                        referrerPolicy="no-referrer"
+                      />
+                      <p className="mt-2 text-[8px] font-mono text-[#76b82a] uppercase tracking-widest truncate">URL: {url}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

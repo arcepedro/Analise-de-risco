@@ -97,9 +97,13 @@ service cloud.firestore {
     function isValidUrl(url) {
       return url is string && (url.matches("^https://.*") || url.matches("^http://.*") || url == "");
     }
-    
+
     function isValidDateString(dateStr) {
       return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isValidUrlList(list) {
+      return list is list && list.size() <= 3 && (list.size() == 0 || isValidUrl(list[0])) && (list.size() < 2 || isValidUrl(list[1])) && (list.size() < 3 || isValidUrl(list[2]));
     }
 
     // ===============================================================
@@ -122,7 +126,7 @@ service cloud.firestore {
         isValidDateString(data.timestamp) &&
         isValidEmail(data.email_supervisor) &&
         isValidEmail(data.email_usuario) &&
-        isValidUrl(data.foto_arquivo);
+        (!data.keys().hasAll(['foto_arquivo']) || isValidUrlList(data.foto_arquivo));
     }
     
     function isValidStopWork(data) {
@@ -130,7 +134,7 @@ service cloud.firestore {
         data.userId == request.auth.uid &&
         isValidDateString(data.timestamp) &&
         isValidEmail(data.email_usuario) &&
-        isValidUrl(data.foto);
+        (!data.keys().hasAll(['foto']) || isValidUrlList(data.foto));
     }
 
     // ===============================================================
