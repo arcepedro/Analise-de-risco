@@ -1,6 +1,6 @@
 {
-  "name": "Analise de Risco & Stop Work",
-  "description": "Aplicativo para análise de riscos e registro de Stop Work na produção agrícola.",
+  "name": "Análise de Risco",
+  "description": "Aplicativo para análise de riscos na produção agrícola.",
   "requestFramePermissions": [
     "camera"
   ]

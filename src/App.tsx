@@ -221,12 +221,21 @@ const SplashScreen = () => (
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 1, ease: "easeOut" }}
-        className="mb-12 relative"
+        className="mb-8 relative"
       >
         <div className="w-48 h-48 bg-[#111] rounded-[2.5rem] flex items-center justify-center shadow-[0_0_80px_rgba(118,184,42,0.15)] border border-white/5">
           <CustomLogo className="w-24 h-24 shadow-[0_0_30px_rgba(0,0,0,0.5)]" />
         </div>
       </motion.div>
+
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="mb-12 text-[10px] font-black text-[#76b82a] uppercase tracking-[0.3em]"
+      >
+        SEGURANÇA EM PRIMEIRO LUGAR
+      </motion.p>
       
       {/* Text */}
       <motion.div
@@ -236,7 +245,7 @@ const SplashScreen = () => (
         className="flex flex-col items-center"
       >
         <h1 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-tighter text-center leading-none mb-2">
-          Analise de
+          Análise de
         </h1>
         <h2 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-tighter text-center leading-none">
           Risco
@@ -508,11 +517,9 @@ function AppContent() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [submittedType, setSubmittedType] = useState<'analise' | 'stopwork'>('analise');
   const [syncWarning, setSyncWarning] = useState(false);
-  const [viewState, setViewState] = useState<'home' | 'form' | 'list' | 'stopwork'>('home');
+  const [viewState, setViewState] = useState<'home' | 'form' | 'list'>('home');
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
-  const [savedStopWorks, setSavedStopWorks] = useState<any[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [testEmail, setTestEmail] = useState(localStorage.getItem('agro_test_email') || 'pedro.arce@cocal.com.br');
   const [testLogs, setTestLogs] = useState<string[]>([]);
@@ -520,7 +527,6 @@ function AppContent() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [showClearStopWorkConfirm, setShowClearStopWorkConfirm] = useState(false);
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString('pt-BR');
@@ -531,17 +537,11 @@ function AppContent() {
     localStorage.getItem('agro_sheets_url_analise') || 
     'https://script.google.com/macros/s/AKfycbyZqJ_te7CFH_58KpwFeSvDSaV7nvoiJXie8jvLio4o1V-Gny6gICUKR3ALwUIYVIwg/exec'
   );
-  const [sheetsUrlStopWork, setSheetsUrlStopWork] = useState(
-    localStorage.getItem('agro_sheets_url_stopwork') || 
-    'https://script.google.com/macros/s/AKfycbw0_fFLowSk0v-v9H_QkxNh_AMJkVX37DIYoxYcetG36y9dZlujeRzpcxYCjX9Vs9QV/exec'
-  );
   const [lastSyncStatus, setLastSyncStatus] = useState<'success' | 'error' | 'idle'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastPayload, setLastPayload] = useState<any>(null);
   const [dateFilter, setDateFilter] = useState('');
   const [selectedAnalysis, setSelectedAnalysis] = useState<any | null>(null);
-  const [selectedStopWork, setSelectedStopWork] = useState<any | null>(null);
-  const [stopWorkDateFilter, setStopWorkDateFilter] = useState('');
 
   useEffect(() => {
     const currentAnaliseUrl = localStorage.getItem('agro_sheets_url_analise');
@@ -559,21 +559,6 @@ function AppContent() {
     if (!currentAnaliseUrl || currentAnaliseUrl === '' || currentAnaliseUrl === oldDefaultAnaliseUrl || currentAnaliseUrl === prevDefaultAnaliseUrl || currentAnaliseUrl === prevDefaultAnaliseUrl2 || currentAnaliseUrl === prevDefaultAnaliseUrl3 || currentAnaliseUrl === prevDefaultAnaliseUrl4 || currentAnaliseUrl === prevDefaultAnaliseUrl5 || currentAnaliseUrl === prevDefaultAnaliseUrl6 || currentAnaliseUrl === prevDefaultAnaliseUrl7 || currentAnaliseUrl === prevDefaultAnaliseUrl8) {
       setSheetsUrlAnalise(newDefaultAnaliseUrl);
       localStorage.setItem('agro_sheets_url_analise', newDefaultAnaliseUrl);
-    }
-
-    const currentStopWorkUrl = localStorage.getItem('agro_sheets_url_stopwork');
-    const prevDefaultStopWorkUrl = 'https://script.google.com/macros/s/AKfycby3rqwZsMmh3DuQlc9EY2kU7EQB9gaVAIBKHiS0r_LN88TDBZVUBUjPAHfMR1902PZl/exec';
-    const prevDefaultStopWorkUrl2 = 'https://script.google.com/macros/s/AKfycbyViBvou4G-NYI2b_WMR9CLACdeR0XuyWkWMIZdq_h-lM6eUru80zJ7fR_a3wWJ8oY/exec';
-    const prevDefaultStopWorkUrl3 = 'https://script.google.com/macros/s/AKfycbxCC0J6HN8eoUbl42pq5XEn8g7fusnxAfjR0zZDbXIvxnSvZ3TpfY9cfkDEy1GJBN_n/exec';
-    const prevDefaultStopWorkUrl4 = 'https://script.google.com/macros/s/AKfycbxzeDfcBWsDdlnKpHF5RzDQQfLUxGVB7GA0cGWwRExcjX-sawQhdKi9BaKvR4aNfOpD/exec';
-    const prevDefaultStopWorkUrl5 = 'https://script.google.com/macros/s/AKfycbxYHhc97RzaEFMbGz927tcrEHMG7BcLIlh_ZIAw0U4rr5Ns_A13vCiossUdVcJ4Jx6C/exec';
-    const prevDefaultStopWorkUrl6 = 'https://script.google.com/macros/s/AKfycbxZRkk7ToRd2cbyTE5wiX3JSIuvQl2RJC3jIla7nMOmsoT5S97s4pbaR_9J0ZWeXEvO/exec'; // the one previously deployed
-    const prevDefaultStopWorkUrl7 = 'https://script.google.com/macros/s/AKfycbxo0gIY2Kw5S4SgKwPAgpu9QWyUaG_sbduPV5zabA971EdzWBVWg4zWY9M7dk9Peila/exec'; // the one they just gave me
-    
-    if (!currentStopWorkUrl || currentStopWorkUrl === '' || currentStopWorkUrl === prevDefaultStopWorkUrl || currentStopWorkUrl === prevDefaultStopWorkUrl2 || currentStopWorkUrl === prevDefaultStopWorkUrl3 || currentStopWorkUrl === prevDefaultStopWorkUrl4 || currentStopWorkUrl === prevDefaultStopWorkUrl5 || currentStopWorkUrl === prevDefaultStopWorkUrl6 || currentStopWorkUrl === prevDefaultStopWorkUrl7) {
-      const defaultStopWorkUrl = 'https://script.google.com/macros/s/AKfycbw0_fFLowSk0v-v9H_QkxNh_AMJkVX37DIYoxYcetG36y9dZlujeRzpcxYCjX9Vs9QV/exec';
-      setSheetsUrlStopWork(defaultStopWorkUrl);
-      localStorage.setItem('agro_sheets_url_stopwork', defaultStopWorkUrl);
     }
   }, []);
 
@@ -606,21 +591,8 @@ function AppContent() {
       }
     });
 
-    const unsubscribeStopWork = onSnapshot(query(
-      collection(db, 'stop_work'),
-      where('userId', '==', user.uid),
-      orderBy('timestamp', 'desc')
-    ), (snapshot) => {
-      const stopWorks = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setSavedStopWorks(stopWorks);
-    });
-
     return () => {
       unsubscribe();
-      unsubscribeStopWork();
     };
   }, [user]);
 
@@ -655,25 +627,6 @@ function AppContent() {
     email_supervisor: '',
     email_usuario: localStorage.getItem('agro_email_usuario') || '',
   });
-
-  const [stopWorkData, setStopWorkData] = useState({
-    data: new Date().toISOString().split('T')[0],
-    equipe: '',
-    turno: '',
-    gestor: '',
-    duracao: '',
-    local_setor: '',
-    temas: '',
-    foto: [] as string[],
-    email_usuario: localStorage.getItem('agro_email_usuario') || '',
-  });
-
-  useEffect(() => {
-    if (user) {
-      const nome = localStorage.getItem(`agro_nome_${user.uid}`) || '';
-      setStopWorkData(prev => ({ ...prev, gestor: nome, email_usuario: user.email || '' }));
-    }
-  }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -736,12 +689,12 @@ function AppContent() {
     });
   };
 
-  const handleFileUpload = async (files: FileList | null, type: 'analise' | 'stopwork') => {
+  const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !user) {
       return;
     }
 
-    const currentPhotosCount = type === 'analise' ? formData.foto_arquivo.length : stopWorkData.foto.length;
+    const currentPhotosCount = formData.foto_arquivo.length;
     const remainingSlots = 3 - currentPhotosCount;
 
     if (remainingSlots <= 0) {
@@ -756,16 +709,11 @@ function AppContent() {
     
     try {
       const newUrls: string[] = [];
-      const pasta = type === 'analise' ? 'analise_risco' : 'stop_work';
+      const pasta = 'analise_risco';
       const date = new Date();
       const dataFormatada = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}h${String(date.getMinutes()).padStart(2, '0')}m`;
       
-      let nomeSetor = '';
-      if (type === 'analise') {
-        nomeSetor = formData.setor ? formData.setor.replace(/[^a-zA-Z0-9]/g, '_') : 'SemSetor';
-      } else {
-        nomeSetor = stopWorkData.local_setor ? stopWorkData.local_setor.replace(/[^a-zA-Z0-9]/g, '_') : 'SemSetor';
-      }
+      const nomeSetor = formData.setor ? formData.setor.replace(/[^a-zA-Z0-9]/g, '_') : 'SemSetor';
 
       for (let i = 0; i < filesToUpload.length; i++) {
         const file = filesToUpload[i];
@@ -783,11 +731,7 @@ function AppContent() {
         newUrls.push(downloadURL);
       }
       
-      if (type === 'analise') {
-        setFormData(prev => ({ ...prev, foto_arquivo: [...prev.foto_arquivo, ...newUrls] }));
-      } else {
-        setStopWorkData(prev => ({ ...prev, foto: [...prev.foto, ...newUrls] }));
-      }
+      setFormData(prev => ({ ...prev, foto_arquivo: [...prev.foto_arquivo, ...newUrls] }));
       console.log('✅ Foto(s) enviada(s) com sucesso:', newUrls);
     } catch (e) {
       console.error('Erro detalhado ao enviar foto:', e);
@@ -796,49 +740,18 @@ function AppContent() {
       setUploadingPhoto(false);
     }
   };
-  const handleRemovePhoto = (type: 'analise' | 'stopwork', index: number) => {
-    if (type === 'analise') {
-      setFormData(prev => ({ 
-        ...prev, 
-        foto_arquivo: prev.foto_arquivo.filter((_, i) => i !== index) 
-      }));
-    } else {
-      setStopWorkData(prev => ({ 
-        ...prev, 
-        foto: prev.foto.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleClearStopWorkHistory = async () => {
-    if (!user || savedStopWorks.length === 0) {
-      setShowClearStopWorkConfirm(false);
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const batch = writeBatch(db);
-      savedStopWorks.forEach((sw) => {
-        if (sw.id) {
-          const docRef = doc(db, 'stop_work', sw.id);
-          batch.delete(docRef);
-        }
-      });
-      await batch.commit();
-      setShowClearStopWorkConfirm(false);
-    } catch (e) {
-      setError('Erro ao limpar histórico: ' + (e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+  const handleRemovePhoto = (index: number) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      foto_arquivo: prev.foto_arquivo.filter((_, i) => i !== index) 
+    }));
   };
 
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet([formData]);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Analise");
-    XLSX.writeFile(wb, `Analise_Risco_${formData.nome || 'export'}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Análise");
+    XLSX.writeFile(wb, `Análise_Risco_${formData.nome || 'export'}.xlsx`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -958,7 +871,6 @@ function AppContent() {
       }
       
       setSubmitted(true);
-      setSubmittedType('analise');
       setStep(0);
       
       // Local storage as backup
@@ -976,84 +888,12 @@ function AppContent() {
     }
   };
 
-  const handleStopWorkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    setSyncWarning(false);
-    setLastSyncStatus('idle');
-
-    if (!sheetsUrlStopWork) {
-      setError('A URL do Google Sheets para Stop Work não está configurada.');
-      setSubmitting(false);
-      return;
-    }
-
-    try {
-      const timestamp = new Date().toISOString();
-      const payload = {
-        ...stopWorkData,
-        type: 'STOP_WORK',
-        userId: user?.uid,
-        timestamp,
-      };
-
-      const sheetsStopWorkPayload = {
-        "type": "STOP_WORK",
-        "DATA REGISTRO": stopWorkData.data,
-        "EQUIPE": stopWorkData.equipe,
-        "TURNO": stopWorkData.turno,
-        "GESTOR": stopWorkData.gestor,
-        "DURAÇÃO": stopWorkData.duracao,
-        "LOCAL/SETOR": stopWorkData.local_setor,
-        "TEMAS ABORDADOS": stopWorkData.temas,
-        "FOTO": stopWorkData.foto.join('\n'),
-        "EMAIL USUARIO": stopWorkData.email_usuario,
-        "TIMESTAMP": timestamp,
-        "ID USUARIO": user?.uid
-      };
-
-      // Save to Firestore
-      await addDoc(collection(db, 'stop_work'), payload);
-      
-      setLastPayload(sheetsStopWorkPayload);
-
-      // Envia para o Google Sheets
-      try {
-        await fetch(sheetsUrlStopWork.trim(), {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(sheetsStopWorkPayload),
-        });
-        setLastSyncStatus('success');
-      } catch (fetchError) {
-        setSyncWarning(true);
-        setLastSyncStatus('error');
-      }
-      
-      setSubmittedType('stopwork');
-      setSubmitted(true);
-      // Removed setViewState('home') so it stays available to visually render the submitted screen FIRST.
-      setStopWorkData(prev => ({ ...prev, equipe: '', turno: '', duracao: '', local_setor: '', temas: '', foto: [] }));
-    } catch (e) {
-      setError('Erro ao enviar dados: ' + (e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
   const handleRetrySync = async () => {
     if (!lastPayload) return;
     
-    // Determine which URL to use based on payload structure
-    const isStopWork = 'DATA REGISTRO' in lastPayload;
-    const urlToUse = isStopWork ? sheetsUrlStopWork : sheetsUrlAnalise;
-
-    if (!urlToUse) return;
-    
     setSubmitting(true);
     try {
-      const urlToFetch = urlToUse.trim();
+      const urlToFetch = sheetsUrlAnalise.trim();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         try {
@@ -1061,7 +901,7 @@ function AppContent() {
         } catch (e) {
           console.warn('Erro ao abortar controller:', e);
         }
-      }, 30000); // Aumentado para 30 segundos
+      }, 30000); 
 
       await fetch(urlToFetch, {
         method: 'POST',
@@ -1228,14 +1068,13 @@ function AppContent() {
   }
 
   if (submitted) {
-    const isStopWork = submittedType === 'stopwork';
-    const gradientFrom = isStopWork ? 'from-red-500' : 'from-lime-500';
-    const gradientTo = isStopWork ? 'to-rose-500' : 'to-emerald-500';
-    const textColor = isStopWork ? 'text-red-500' : 'text-[#76b82a]';
-    const btnFrom = isStopWork ? 'from-[#f43f5e]' : 'from-[#76b82a]';
-    const btnTo = isStopWork ? 'from-[#be123c]' : 'to-[#008000]';
-    const btnShadow = isStopWork ? 'shadow-[#f43f5e]/20' : 'shadow-[#76b82a]/20';
-    const mainTitle = isStopWork ? "Stop Work Concluído" : "Relatório Transmitido";
+    const gradientFrom = 'from-lime-500';
+    const gradientTo = 'to-emerald-500';
+    const textColor = 'text-[#76b82a]';
+    const btnFrom = 'from-[#76b82a]';
+    const btnTo = 'to-[#008000]';
+    const btnShadow = 'shadow-[#76b82a]/20';
+    const mainTitle = "Relatório Transmitido";
 
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -1282,9 +1121,7 @@ function AppContent() {
                 setSubmitted(false);
                 setStep(0);
                 setViewState('home');
-                if (!isStopWork) {
-                  setFormData({ ...formData, matricula: '', nome: '', setor: '', fazenda: '', observacao_area: '' });
-                }
+                setFormData({ ...formData, matricula: '', nome: '', setor: '', fazenda: '', observacao_area: '' });
               }}
               className={`w-full py-3 bg-gradient-to-r ${btnFrom} ${btnTo} text-white font-black uppercase tracking-widest rounded-xl shadow-xl ${btnShadow} transition-all`}
             >
@@ -1304,190 +1141,6 @@ function AppContent() {
     { title: "Finalização", icon: CheckCircle2 },
   ];
 
-  const renderStopWorkForm = () => {
-    return (
-      <form onSubmit={handleStopWorkSubmit} className="space-y-6">
-        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-[2rem] mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <ShieldAlert className="w-6 h-6 text-red-500" />
-            <h3 className="text-xl font-black text-red-500 uppercase tracking-tighter">Lançamento Stop Work</h3>
-          </div>
-          <p className="text-[10px] font-mono text-red-400/70 uppercase tracking-widest">Segurança é Inegociável</p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Equipe</label>
-              <input
-                type="text"
-                value={stopWorkData.equipe}
-                onChange={(e) => setStopWorkData(p => ({ ...p, equipe: e.target.value }))}
-                placeholder="EX: Equipe 80 Plantio Mecanizado"
-                className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Turno</label>
-              <SearchableSelect
-                options={[
-                  { label: 'Turno A', value: 'A' },
-                  { label: 'Turno B', value: 'B' },
-                  { label: 'Turno C', value: 'C' }
-                ]}
-                value={stopWorkData.turno}
-                onChange={(val) => setStopWorkData(p => ({ ...p, turno: val }))}
-                placeholder="SELECIONE O TURNO"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Data</label>
-              <input
-                type="date"
-                value={stopWorkData.data}
-                onChange={(e) => setStopWorkData(p => ({ ...p, data: e.target.value }))}
-                className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Duração (Minutos)</label>
-              <input
-                type="number"
-                value={stopWorkData.duracao}
-                onChange={(e) => setStopWorkData(p => ({ ...p, duracao: e.target.value }))}
-                placeholder="EX: 25"
-                className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Gestor Responsável</label>
-            <input
-              type="text"
-              value={stopWorkData.gestor}
-              onChange={(e) => setStopWorkData(p => ({ ...p, gestor: e.target.value }))}
-              className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Local / Setor</label>
-            <input
-              type="text"
-              value={stopWorkData.local_setor}
-              onChange={(e) => setStopWorkData(p => ({ ...p, local_setor: e.target.value }))}
-              placeholder="EX: Setor 3755"
-              className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Temas Abordados</label>
-            <textarea
-              value={stopWorkData.temas}
-              onChange={(e) => setStopWorkData(p => ({ ...p, temas: e.target.value }))}
-              placeholder="Liste os temas discutidos..."
-              rows={4}
-              className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none resize-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Foto da Equipe</label>
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/10 border-dashed rounded-xl cursor-pointer bg-black hover:bg-white/5 backdrop-blur-2xl border border-white/5 transition-all">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  {uploadingPhoto ? (
-                    <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-2" />
-                  ) : (
-                    <Camera className="w-8 h-8 text-white/40 mb-2" />
-                  )}
-                  <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
-                    {uploadingPhoto ? 'Enviando Foto...' : 'Anexar Foto do Stop Work'}
-                  </p>
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  multiple
-                  className="hidden" 
-                  disabled={uploadingPhoto || stopWorkData.foto.length >= 3}
-                  onChange={(e) => {
-                    handleFileUpload(e.target.files, 'stopwork');
-                  }}
-                />
-              </label>
-            </div>
-            {stopWorkData.foto.length > 0 && (
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {stopWorkData.foto.map((url, index) => (
-                  <div key={index} className="p-2 bg-black border border-white/10 rounded-xl overflow-hidden relative group">
-                    <button 
-                      type="button"
-                      onClick={() => handleRemovePhoto('stopwork', index)}
-                      className="absolute top-4 right-4 bg-red-600 border border-white/20 text-white p-2 rounded-full opacity-90 hover:opacity-100 hover:bg-red-500 hover:scale-110 transition-all shadow-xl z-10"
-                      title="Excluir Foto"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <img 
-                      src={url} 
-                      alt={`Preview ${index + 1}`} 
-                      className="w-full h-32 object-cover rounded-lg"
-                      referrerPolicy="no-referrer"
-                    />
-                    <p className="mt-2 text-[8px] font-mono text-red-500 uppercase tracking-widest truncate">URL: {url}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {error && (
-          <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-4">
-            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Erro ao Enviar</p>
-              <p className="text-xs font-mono text-red-200/70">{error}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-4 pt-6">
-          <button
-            type="button"
-            onClick={() => setViewState('home')}
-            className="flex-1 py-3 bg-white/5 border border-white/10 text-white/60 font-black uppercase tracking-widest rounded-xl hover:bg-white/10 hover:text-white transition-all"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="flex-[2] py-3 bg-gradient-to-r from-[#f43f5e] to-[#be123c] text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#f43f5e]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Transmitindo...</span>
-              </div>
-            ) : "FINALIZAR"}
-          </button>
-        </div>
-      </form>
-    );
-  };
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -1773,7 +1426,7 @@ function AppContent() {
                     className="hidden" 
                     disabled={uploadingPhoto || formData.foto_arquivo.length >= 3}
                     onChange={(e) => {
-                      handleFileUpload(e.target.files, 'analise');
+                      handleFileUpload(e.target.files);
                     }}
                   />
                 </label>
@@ -1784,7 +1437,7 @@ function AppContent() {
                     <div key={index} className="p-2 bg-black border border-white/10 rounded-xl overflow-hidden relative group">
                       <button 
                         type="button"
-                        onClick={() => handleRemovePhoto('analise', index)}
+                        onClick={() => handleRemovePhoto(index)}
                         className="absolute top-4 right-4 bg-red-600 border border-white/20 text-white p-2 rounded-full opacity-90 hover:opacity-100 hover:bg-red-500 hover:scale-110 transition-all shadow-xl z-10"
                         title="Excluir Foto"
                       >
@@ -1832,7 +1485,7 @@ function AppContent() {
             <CustomLogo className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold leading-tight text-white">Analise de Risco & Stop Work</h1>
+            <h1 className="text-base sm:text-lg font-bold leading-tight text-white">Análise de Risco</h1>
             <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#76b82a] font-bold">Produção Agrícola</p>
           </div>
         </div>
@@ -1885,20 +1538,18 @@ function AppContent() {
               <ShieldCheck className="w-64 h-64 text-white" />
             </div>
 
-            <div className="relative mb-10">
+            <div className="relative mb-6">
               <div className="w-28 h-28 bg-white/5 border border-white/10 rounded-[2rem] flex items-center justify-center border border-white/10 shadow-2xl relative z-10">
                 <CustomLogo className="w-16 h-16" />
               </div>
               <div className="absolute -inset-4 bg-[#76b82a]/10 blur-2xl rounded-full pointer-events-none" />
             </div>
+            <p className="mb-10 text-[10px] font-black text-[#76b82a] uppercase tracking-[0.3em] relative z-10">SEGURANÇA EM PRIMEIRO LUGAR</p>
             
             <div className="mb-12 relative z-10">
               <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
-                Analise de Risco
+                Análise de Risco
               </h1>
-              <h2 className="text-xl font-black text-[#76b82a] uppercase tracking-tighter mb-6">
-                & Stop Work
-              </h2>
               <div className="flex items-center justify-center gap-3">
                 <div className="flex gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#76b82a] animate-pulse" />
@@ -1909,12 +1560,12 @@ function AppContent() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg relative z-10">
+            <div className="w-full max-w-lg relative z-10">
               <motion.button 
                 whileHover={{ scale: 1.02, y: -4, boxShadow: "0 20px 40px -10px rgba(101,163,13,0.3)" }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setViewState('form')}
-                className="group flex flex-col items-center justify-center gap-5 bg-gradient-to-r from-[#76b82a] to-[#008000] text-black transition-all p-10 rounded-[2rem] font-black shadow-2xl relative overflow-hidden border border-white/20"
+                className="group w-full flex flex-col items-center justify-center gap-5 bg-gradient-to-r from-[#76b82a] to-[#008000] text-black transition-all p-10 rounded-[2rem] font-black shadow-2xl relative overflow-hidden border border-white/20"
               >
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-[#76b82a]" />
                 <div className="w-16 h-16 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-xl flex items-center justify-center group-hover:bg-[#76b82a] transition-all duration-300 shadow-lg group-hover:shadow-lime-500/50">
@@ -1926,47 +1577,19 @@ function AppContent() {
                 </div>
                 <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-[#76b82a]/5 blur-2xl rounded-full group-hover:bg-[#76b82a]/20 transition-all" />
               </motion.button>
-
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -4, boxShadow: "0 20px 40px -10px rgba(220,38,38,0.3)" }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setViewState('stopwork')}
-                className="group flex flex-col items-center justify-center gap-5 bg-red-600 hover:bg-red-500 text-white transition-all p-10 rounded-[2rem] font-black shadow-2xl relative overflow-hidden border border-red-400/20"
-              >
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-white/30" />
-                <div className="w-16 h-16 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-white/20 transition-all duration-300 shadow-lg group-hover:shadow-white/20">
-                  <ShieldAlert className="w-8 h-8 text-white" />
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-sm uppercase tracking-[0.2em] mb-1">Stop Work</span>
-                  <span className="text-[9px] opacity-70 uppercase tracking-widest bg-black/10 px-2 py-0.5 rounded">Lançar Parada</span>
-                </div>
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/5 blur-2xl rounded-full group-hover:bg-white/10 transition-all" />
-              </motion.button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 w-full max-w-lg mt-8 relative z-10">
+            <div className="flex justify-center w-full max-w-lg mt-8 relative z-10">
               <motion.button 
                 whileHover={{ scale: 1.02, backgroundColor: "rgba(39, 39, 42, 1)" }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setViewState('list')}
-                className="flex flex-col items-center justify-center gap-2 py-6 bg-white/5 border border-white/10/50 hover:bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl font-mono text-[10px] uppercase tracking-widest border border-white/10/50 transition-all shadow-lg"
+                className="w-full flex flex-col items-center justify-center gap-2 py-6 bg-white/5 border border-white/10/50 hover:bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl font-mono text-[10px] uppercase tracking-widest border border-white/10/50 transition-all shadow-lg"
               >
                 <div className="w-8 h-8 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-lg flex items-center justify-center border border-white/10 mb-1">
                   <History className="w-4 h-4 text-[#76b82a]" />
                 </div>
                 Histórico Inspeções
-              </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.02, backgroundColor: "rgba(39, 39, 42, 1)" }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setViewState('stopwork_list')}
-                className="flex flex-col items-center justify-center gap-2 py-6 bg-white/5 border border-white/10/50 hover:bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl font-mono text-[10px] uppercase tracking-widest border border-white/10/50 transition-all shadow-lg"
-              >
-                <div className="w-8 h-8 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-lg flex items-center justify-center border border-white/10 mb-1">
-                  <History className="w-4 h-4 text-red-500" />
-                </div>
-                Histórico Stop Work
               </motion.button>
             </div>
 
@@ -2115,89 +1738,6 @@ function AppContent() {
           </div>
         )}
 
-        {viewState === 'stopwork_list' && (
-          <div className="mt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Histórico Stop Work</h2>
-                <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest mt-1">Registros de Segurança</p>
-              </div>
-              
-              <div className="flex items-center gap-2 bg-white/5 backdrop-blur-2xl border border-white/5 border border-white/10 rounded-xl px-4 py-2 shadow-inner">
-                {savedStopWorks.length > 0 && (
-                  <button 
-                    onClick={() => setShowClearStopWorkConfirm(true)}
-                    className="p-2 hover:bg-red-500/10 rounded-full text-red-500 transition-colors mr-2 border-r border-white/10 pr-4"
-                    title="Limpar Histórico"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-                <Calendar className="w-4 h-4 text-white/40" />
-                <input 
-                  type="date" 
-                  value={stopWorkDateFilter}
-                  onChange={(e) => setStopWorkDateFilter(e.target.value)}
-                  className="text-xs font-mono outline-none bg-transparent text-white uppercase"
-                />
-                {stopWorkDateFilter && (
-                  <button 
-                    onClick={() => setStopWorkDateFilter('')}
-                    className="p-1 hover:bg-white/5 border border-white/10 rounded-full text-white/40 transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {savedStopWorks.length === 0 ? (
-              <div className="bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] border border-white/10 p-12 text-center">
-                <History className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-white/40 font-mono text-xs uppercase tracking-widest">Nenhum Stop Work registrado no banco local.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {savedStopWorks
-                  .filter(sw => !stopWorkDateFilter || sw.data === stopWorkDateFilter)
-                  .map((sw, idx) => (
-                  <button 
-                    key={idx} 
-                    onClick={() => setSelectedStopWork(sw)}
-                    className="bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[1.5rem] p-4 hover:bg-white/10 transition-all group relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-white/5 border border-white/10 group-hover:bg-red-500 transition-colors" />
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">{sw.data}</span>
-                          <span className="w-1 h-1 bg-white/10 rounded-full" />
-                          <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">{sw.equipe} - Turno {sw.turno}</span>
-                        </div>
-                        <h3 className="font-black text-white group-hover:text-red-500 transition-colors uppercase tracking-tight">{sw.gestor || 'Sem gestor'}</h3>
-                        <p className="text-[10px] text-white/40 font-mono uppercase mt-1 tracking-tighter">
-                          {sw.local_setor} • {sw.duracao} min
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-[9px] font-black px-3 py-1 bg-red-500/10 text-red-500 rounded-lg border border-red-500/20 uppercase tracking-widest">
-                          Stop Work
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-red-500 transition-all transform group-hover:translate-x-1" />
-                      </div>
-                    </div>
-                  </button>
-                ))}
-                {savedStopWorks.filter(sw => !stopWorkDateFilter || sw.data === stopWorkDateFilter).length === 0 && (
-                  <div className="bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] border border-white/10 p-12 text-center">
-                    <p className="text-white/40 font-mono text-xs uppercase tracking-widest">Nenhum Stop Work encontrado para esta data.</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Report Modal */}
         <AnimatePresence>
           {selectedAnalysis && (
@@ -2310,93 +1850,6 @@ function AppContent() {
             </motion.div>
           )}
 
-          {selectedStopWork && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            >
-              <motion.div 
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 20 }}
-                className="bg-white/5 backdrop-blur-2xl border border-white/5 border border-white/10 rounded-[2rem] p-6 sm:p-10 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative custom-scrollbar overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500" />
-                
-                <button 
-                  onClick={() => setSelectedStopWork(null)}
-                  className="absolute top-6 right-6 p-2 text-white/40 hover:text-white hover:bg-white/5 border border-white/10 rounded-xl transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                
-                <div className="flex items-center gap-4 mb-10">
-                  <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center border border-white/10 shadow-inner">
-                    <ShieldAlert className="w-6 h-6 text-red-500" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Relatório Stop Work</h2>
-                    <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Protocolo: {selectedStopWork.timestamp?.split('T')[0]}-SW-{Math.random().toString(36).substr(2, 5).toUpperCase()}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-1 h-3 bg-red-500 rounded-full" />
-                      <h3 className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Identificação</h3>
-                    </div>
-                    <div className="space-y-4 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[1.5rem] p-4">
-                      <DetailItem label="Data" value={selectedStopWork.data} />
-                      <DetailItem label="Equipe" value={selectedStopWork.equipe} />
-                      <DetailItem label="Turno" value={selectedStopWork.turno} />
-                      <DetailItem label="Gestor Responsável" value={selectedStopWork.gestor} />
-                      <DetailItem label="Duração" value={`${selectedStopWork.duracao} minutos`} />
-                      <DetailItem label="Local / Setor" value={selectedStopWork.local_setor} />
-                    </div>
-                  </div>
-                  
-                  <div className="sm:col-span-2 space-y-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-1 h-3 bg-red-500 rounded-full" />
-                      <h3 className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Temas Abordados</h3>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[1.5rem] p-6">
-                      <p className="text-xs text-white font-mono leading-relaxed whitespace-pre-wrap">
-                        {selectedStopWork.temas}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedStopWork.foto && (
-                    <div className="sm:col-span-2 space-y-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-1 h-3 bg-red-500 rounded-full" />
-                        <h3 className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Evidência Fotográfica</h3>
-                      </div>
-                      <div className="bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[1.5rem] p-4 flex flex-col items-center">
-                        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-2">Arquivo: {selectedStopWork.foto}</p>
-                        <div className="w-full h-48 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-xl flex items-center justify-center border border-white/10">
-                          <Camera className="w-12 h-12 text-white/20" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-12 pt-8 border-t border-white/10 flex justify-end">
-                  <button 
-                    onClick={() => setSelectedStopWork(null)}
-                    className="px-10 py-4 bg-gradient-to-r from-[#76b82a] to-[#008000] text-black rounded-xl font-black text-xs hover:bg-white transition-all uppercase tracking-widest shadow-xl"
-                  >
-                    Fechar Relatório
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
         </AnimatePresence>
 
         {/* Clear History Confirmation Modal */}
@@ -2441,54 +1894,7 @@ function AppContent() {
               </motion.div>
             </motion.div>
           )}
-
-          {showClearStopWorkConfirm && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-[70] p-4 bg-black/90 backdrop-blur-md"
-            >
-              <motion.div 
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white/5 backdrop-blur-2xl border border-white/5 border border-white/10 p-8 rounded-[2rem] max-w-sm w-full text-center shadow-2xl relative overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-red-500" />
-                <div className="w-20 h-20 bg-red-500/10 rounded-xl flex items-center justify-center mx-auto mb-6 border border-red-500/20 shadow-inner">
-                  <Trash2 className="w-10 h-10 text-red-500" />
-                </div>
-                <h3 className="text-xl font-black text-white mb-3 uppercase tracking-tighter">Limpar Stop Work?</h3>
-                <p className="text-white/40 font-mono text-[10px] mb-8 uppercase tracking-widest leading-relaxed">
-                  ESTA AÇÃO IRÁ APAGAR PERMANENTEMENTE TODOS OS REGISTROS DE STOP WORK SALVOS NESTE DISPOSITIVO E NO BANCO DE DADOS. ESTA OPERAÇÃO NÃO PODE SER DESFEITA.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <button 
-                    onClick={handleClearStopWorkHistory}
-                    disabled={loading}
-                    className="w-full py-3 bg-gradient-to-r from-[#f43f5e] to-[#be123c] text-white font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#f43f5e]/20 transition-all flex items-center justify-center gap-2"
-                  >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    CONFIRMAR EXCLUSÃO
-                  </button>
-                  <button 
-                    onClick={() => setShowClearStopWorkConfirm(false)}
-                    className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black uppercase tracking-widest rounded-xl transition-all active:scale-95"
-                  >
-                    CANCELAR
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
         </AnimatePresence>
-
-        {viewState === 'stopwork' && (
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] shadow-2xl border border-white/10 p-6 sm:p-10">
-            {renderStopWorkForm()}
-          </div>
-        )}
 
         {viewState === 'form' && (
           <>
@@ -2737,7 +2143,7 @@ function AppContent() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">URL Análise de Risco (Integrada)</label>
+                  <label className="block text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">URL Análise de Risco</label>
                   <input
                     type="url"
                     value={sheetsUrlAnalise}
@@ -2745,20 +2151,6 @@ function AppContent() {
                     placeholder="https://script.google.com/macros/s/..."
                     className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#76b82a]/50 outline-none text-xs opacity-70"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">URL Stop Work (Nova Planilha)</label>
-                  <input
-                    type="url"
-                    value={sheetsUrlStopWork}
-                    onChange={(e) => setSheetsUrlStopWork(e.target.value)}
-                    placeholder="https://script.google.com/macros/s/..."
-                    className="w-full p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#f43f5e]/50 outline-none text-xs"
-                  />
-                  <p className="mt-2 text-[9px] text-white/40 font-mono italic">
-                    * Insira o link do novo Apps Script para a planilha de Stop Work.
-                  </p>
                 </div>
 
                 <div className="pt-4 border-t border-white/10">
@@ -2820,7 +2212,6 @@ function AppContent() {
                   <button
                     onClick={() => {
                       localStorage.setItem('agro_sheets_url_analise', sheetsUrlAnalise);
-                      localStorage.setItem('agro_sheets_url_stopwork', sheetsUrlStopWork);
                       localStorage.setItem('agro_test_email', testEmail);
                       setShowSettings(false);
                       setLastSyncStatus('idle');
